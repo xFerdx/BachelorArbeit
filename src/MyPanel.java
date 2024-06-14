@@ -36,7 +36,7 @@ public class MyPanel extends JPanel{
                 TSPSolver tsp = new TSPSolver(getLengths());
                 solution = tsp.bruteForce();
                 System.out.println(solution.toString());
-                label.setText(String.valueOf(solution));
+                label.setText(String.valueOf(tsp.calcLength(solution)));
                 repaint();
             }
         });
@@ -65,29 +65,30 @@ public class MyPanel extends JPanel{
             }
         });
 
-        JButton button5 = new JButton("NN2");
+        JButton button5 = new JButton("Rand Ins");
         button5.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 TSPSolver tsp = new TSPSolver(getLengths());
-                solution = tsp.nn2();
+                solution = tsp.randomInsert();
                 System.out.println(solution.toString());
                 label.setText(String.valueOf(tsp.calcLength(solution)));
                 repaint();
             }
         });
 
-        JButton button6 = new JButton("Ant2");
+        JButton button6 = new JButton("cheap Ins");
         button6.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 TSPSolver tsp = new TSPSolver(getLengths());
-                solution = null;
+                solution = tsp.cheapestInsertion();
                 System.out.println(solution.toString());
                 label.setText(String.valueOf(tsp.calcLength(solution)));
                 repaint();
             }
         });
+
 
         JButton button7 = new JButton("rand");
         button7.addActionListener(new ActionListener() {
@@ -106,7 +107,8 @@ public class MyPanel extends JPanel{
             @Override
             public void actionPerformed(ActionEvent e) {
                 TSPSolver tsp = new TSPSolver(getLengths());
-                solution = tsp.ant();
+                ACOAlgorithm ac = new ACOAlgorithm(getLengths(),0.8,1.0,2.0,0.5,1.0);//AntColonyOptimization(getLengths());
+                solution = ac.solve(100);
                 System.out.println(solution.toString());
                 label.setText(String.valueOf(tsp.calcLength(solution)));
                 repaint();
@@ -138,8 +140,8 @@ public class MyPanel extends JPanel{
             @Override
             public void actionPerformed(ActionEvent e) {
                 TSPSolver tsp = new TSPSolver(getLengths());
-                float oldLen = tsp.calcLength(solution);
-                float newLen;
+                double oldLen = tsp.calcLength(solution);
+                double newLen;
                 while(true){
                     solution = tsp.opt(solution, Integer.parseInt(textField2.getText()));
                     newLen = tsp.calcLength(solution);
@@ -150,6 +152,43 @@ public class MyPanel extends JPanel{
                 System.out.println(solution.toString());
 
 
+                label.setText(String.valueOf(tsp.calcLength(solution)));
+                repaint();
+            }
+        });
+
+        JButton button11 = new JButton("LB");
+        button11.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                TSPSolver tsp = new TSPSolver(getLengths());
+                double lowerBound = tsp.lowerBound();
+                label.setText(String.valueOf(Math.round(lowerBound)));
+            }
+        });
+
+        JButton button12 = new JButton("GA");
+        button12.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                TSPSolver tsp = new TSPSolver(getLengths());
+                gen ga = new gen(getLengths());
+                solution = (ArrayList<Integer>) ga.optimize();
+
+                System.out.println(solution.toString());
+                label.setText(String.valueOf(tsp.calcLength(solution)));
+                repaint();
+            }
+        });
+
+        JButton button13 = new JButton("Chris");
+        button13.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                TSPSolver tsp = new TSPSolver(getLengths());
+                solution = tsp.christofides();
+
+                System.out.println(solution.toString());
                 label.setText(String.valueOf(tsp.calcLength(solution)));
                 repaint();
             }
@@ -168,6 +207,9 @@ public class MyPanel extends JPanel{
         add(button9);
         add(textField2);
         add(button10);
+        add(button11);
+        add(button12);
+        add(button13);
 
 
     }
@@ -183,8 +225,8 @@ public class MyPanel extends JPanel{
         repaint();
     }
 
-    public float[][] getLengths(){
-        float[][] lengths = new float[points.length][points.length];
+    public double[][] getLengths(){
+        double[][] lengths = new double[points.length][points.length];
         for (int i = 0; i < points.length; i++) {
             for (int j = 0; j < points.length; j++) {
                 lengths[i][j] = (float) Math.sqrt(Math.pow(points[i][0]-points[j][0],2)+Math.pow(points[i][1]-points[j][1],2));
@@ -201,7 +243,7 @@ public class MyPanel extends JPanel{
             int[] point = points[i];
             g2d.setColor(i==0?Color.GREEN:Color.BLUE);
             g2d.fillOval(point[0], point[1], pointSize, pointSize);
-            g2d.drawString(String.valueOf(i),point[0],point[1]);
+            if(points.length <= 50)g2d.drawString(String.valueOf(i),point[0],point[1]);
         }
 
         for (int i = 0; i < solution.size()-1; i++) {
