@@ -1,10 +1,9 @@
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.stream.Collectors;
 
 public class MyPanel extends JPanel{
 
@@ -15,7 +14,7 @@ public class MyPanel extends JPanel{
 
 
     MyPanel(){
-        this.setPreferredSize(new Dimension(500,500));
+        this.setPreferredSize(new Dimension(600,500));
         setFocusable(true);
         requestFocus();
 
@@ -56,7 +55,9 @@ public class MyPanel extends JPanel{
         JButton button5 = new JButton("Rand Ins");
         button5.addActionListener(e -> {
             TSPSolver tsp = new TSPSolver(getLengths());
+            double t1 = System.currentTimeMillis();
             solution = tsp.randomInsert();
+            System.out.println("zakakak"+(System.currentTimeMillis()-t1));
             System.out.println(solution.toString());
             label.setText(String.valueOf(tsp.calcLength(solution)));
             repaint();
@@ -84,8 +85,7 @@ public class MyPanel extends JPanel{
         JButton button8 = new JButton("Ant");
         button8.addActionListener(e -> {
             TSPSolver tsp = new TSPSolver(getLengths());
-            ACOAlgorithm ac = new ACOAlgorithm(getLengths(),0.8,1.0,2.0,0.5,1.0);//AntColonyOptimization(getLengths());
-            solution = ac.solve(100);
+            solution = tsp.aco(0.2,1.0,3.0,0.5,100);
             System.out.println(solution.toString());
             label.setText(String.valueOf(tsp.calcLength(solution)));
             repaint();
@@ -121,7 +121,7 @@ public class MyPanel extends JPanel{
         button12.addActionListener(e -> {
             TSPSolver tsp = new TSPSolver(getLengths());
             gen ga = new gen(getLengths());
-            solution = (ArrayList<Integer>) ga.optimize();
+            solution = ga.optimize();
 
             System.out.println(solution.toString());
             label.setText(String.valueOf(tsp.calcLength(solution)));
@@ -141,7 +141,7 @@ public class MyPanel extends JPanel{
         JButton button14 = new JButton("2Opt");
         button14.addActionListener(e -> {
             TSPSolver tsp = new TSPSolver(getLengths());
-            solution = tsp.Opt2(solution);
+            tsp.Opt2(solution);
             System.out.println(solution.toString());
             label.setText(String.valueOf(tsp.calcLength(solution)));
             repaint();
@@ -150,7 +150,7 @@ public class MyPanel extends JPanel{
         JButton button15 = new JButton("3Opt");
         button15.addActionListener(e -> {
             TSPSolver tsp = new TSPSolver(getLengths());
-            solution = tsp.Opt3(solution);
+            tsp.Opt3(solution);
             System.out.println(solution.toString());
             label.setText(String.valueOf(tsp.calcLength(solution)));
             repaint();
@@ -168,7 +168,7 @@ public class MyPanel extends JPanel{
         JButton button17 = new JButton("Or-tools");
         button17.addActionListener(e -> {
             TSPSolver tsp = new TSPSolver(getLengths());
-            solution = OrTools.solve(getLengths(),1,0);
+            solution = tsp.orTools();
             System.out.println(solution);
             label.setText(String.valueOf(tsp.calcLength(solution)));
             repaint();
@@ -177,10 +177,15 @@ public class MyPanel extends JPanel{
         JButton button18 = new JButton("LK");
         button18.addActionListener(e -> {
             TSPSolver tsp = new TSPSolver(getLengths());
-            LinKernighan lk = new LinKernighan(getLengths());
-            solution = lk.runAlgorithm();
+            solution = tsp.linK();
             System.out.println(solution);
             label.setText(String.valueOf(tsp.calcLength(solution)));
+            repaint();
+        });
+
+        JButton button19 = new JButton("Read file");
+        button19.addActionListener(e -> {
+            readTSPFile("TSPFiles/pcb1173.tsp");
             repaint();
         });
 
@@ -204,6 +209,7 @@ public class MyPanel extends JPanel{
         add(button16);
         add(button17);
         add(button18);
+        add(button19);
 
 
     }
@@ -229,20 +235,68 @@ public class MyPanel extends JPanel{
         return lengths;
     }
 
+    public void readTSPFile(String filePath) {
+        ArrayList<double[]> nodeList = new ArrayList<>();
+
+        try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
+            String line;
+            boolean startReadingNodes = false;
+
+            while ((line = br.readLine()) != null) {
+                if (line.trim().equals("NODE_COORD_SECTION")) {
+                    startReadingNodes = true;
+                    continue;
+                }
+
+                if (line.trim().equals("EOF")) {
+                    break;
+                }
+
+                if (startReadingNodes) {
+                    String[] parts = line.trim().split("\\s+");
+                    if (parts.length == 3) {
+                        int nodeId = Integer.parseInt(parts[0]);
+                        double x = Double.parseDouble(parts[1]);
+                        double y = Double.parseDouble(parts[2]);
+                        nodeList.add(new double[]{x, y});
+                    }
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        double[][] nodesArray = new double[nodeList.size()][2];
+        for (int i = 0; i < nodeList.size(); i++) {
+                nodesArray[i] = nodeList.get(i);
+        }
+
+        points = nodesArray;
+    }
+
     public void paint(Graphics g){
         super.paint(g);
         Graphics2D g2d = (Graphics2D) g;
         g2d.drawRect(100,100,300+pointSize,300+pointSize);
+        double maxX = 0;
+        double maxY = 0;
+        for (int i = 0; i < points.length; i++) {
+            maxX = Math.max(maxX,points[i][0]);
+            maxY = Math.max(maxY,points[i][1]);
+        }
         for (int i = 0; i < points.length; i++) {
             double[] point = points[i];
             g2d.setColor(i==0?Color.GREEN:Color.BLUE);
-            g2d.fillOval(100 + (int)(point[0] * range[0]), 100 + (int)(point[1] * range[1]), pointSize, pointSize);
-            if(points.length <= 50)g2d.drawString(String.valueOf(i),100 + (int)(point[0] * range[0]),100 + (int)(point[1] * range[1]));
+            g2d.fillOval(100 + (int)(point[0] * range[0]/maxX), 100 + (int)(point[1] * range[1]/maxY), pointSize, pointSize);
+            if(points.length <= 50)g2d.drawString(String.valueOf(i),100 + (int)(point[0] * range[0]/maxX),100 + (int)(point[1] * range[1]/maxY));
         }
 
         for (int i = 0; i < solution.size()-1; i++) {
             g2d.setColor(Color.BLACK);
-            g2d.drawLine(100 + (int) (points[solution.get(i)][0] * range[0]) + pointSize/2,100 + (int) (points[solution.get(i)][1] * range[1]) + pointSize/2,100 + (int) (points[solution.get(i+1)][0] * range[0]) + pointSize/2,100 + (int) (points[solution.get(i+1)][1] * range[1]) + pointSize/2);
+            g2d.drawLine(100 + (int) (points[solution.get(i)][0] * range[0]/maxX) + pointSize/2,
+                    100 + (int) (points[solution.get(i)][1] * range[1]/maxY) + pointSize/2,
+                    100 + (int) (points[solution.get(i+1)][0] * range[0]/maxX) + pointSize/2,
+                    100 + (int) (points[solution.get(i+1)][1] * range[1]/maxY) + pointSize/2);
         }
     }
 

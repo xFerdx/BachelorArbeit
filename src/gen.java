@@ -21,11 +21,26 @@ public class gen {
         this.startingCity = 0;
         this.targetFitness = 0;
 
-        generationSize = 500;
+        generationSize = 50;
         reproductionSize = 200;
-        maxIterations = 10000;
+        maxIterations = 100;
         mutationRate = 0.1f;
         tournamentSize = 40;
+    }
+
+    public gen(double[][] travelPrices, int generationSize, int reproductionSize, int maxIterations, float mutationRate, int tournamentSize){
+        this.numberOfCities = travelPrices.length;
+        this.genomeSize = numberOfCities-1;
+        this.selectionType = SelectionType.TOURNAMENT;
+        this.travelPrices = travelPrices;
+        this.startingCity = 0;
+        this.targetFitness = 0;
+
+        this.generationSize = generationSize;
+        this.reproductionSize = reproductionSize;
+        this.maxIterations = maxIterations;
+        this.mutationRate = mutationRate;
+        this.tournamentSize = tournamentSize;
     }
 
     public List<SalesmanGenome> initialPopulation(){
@@ -129,7 +144,7 @@ public class gen {
         return children;
     }
 
-    public List<Integer> optimize(){
+    public ArrayList<Integer> optimize(){
         List<SalesmanGenome> population = initialPopulation();
         SalesmanGenome globalBestGenome = population.get(0);
         for(int i=0; i<maxIterations; i++){

@@ -13,9 +13,9 @@ public class ACOAlgorithm {
     private final int numCities;
     private final Random random;
 
-    public ACOAlgorithm(double[][] distanceMatrix, double antRate, double alpha, double beta, double evaporationRate, double initialPheromone) {
+    public ACOAlgorithm(double[][] distanceMatrix, double antRate, double alpha, double beta, double evaporationRate) {
         this.distanceMatrix = distanceMatrix;
-        this.numAnts = (int) (distanceMatrix.length * antRate);
+        this.numAnts = (int) Math.max(1,distanceMatrix.length * antRate);
         this.alpha = alpha;
         this.beta = beta;
         this.evaporationRate = evaporationRate;
@@ -23,7 +23,7 @@ public class ACOAlgorithm {
         this.random = new Random();
         this.pheromoneMatrix = new double[numCities][numCities];
         for (int i = 0; i < numCities; i++) {
-            Arrays.fill(pheromoneMatrix[i], initialPheromone);
+            Arrays.fill(pheromoneMatrix[i], 1);
             pheromoneMatrix[i][i] = 0;
         }
     }
@@ -33,9 +33,9 @@ public class ACOAlgorithm {
         double bestTourLength = Double.POSITIVE_INFINITY;
 
         for (int iteration = 0; iteration < maxIterations; iteration++) {
-            if(((double)(iteration * 100) / maxIterations) % 10 == 0) System.out.println((double)iteration/ maxIterations);
+            //if(((double)(iteration * 100) / maxIterations) % 10 == 0) System.out.println((double)iteration/ maxIterations);
 
-            ArrayList<ArrayList<Integer>> antTours = new ArrayList<>();
+            ArrayList<ArrayList<Integer>> antTours = new ArrayList<>(numAnts);
             for (int ant = 0; ant < numAnts; ant++) {
                 ArrayList<Integer> tour = constructTour();
                 antTours.add(tour);
@@ -53,14 +53,13 @@ public class ACOAlgorithm {
     }
 
     private ArrayList<Integer> constructTour() {
-        ArrayList<Integer> tour = new ArrayList<>();
+        ArrayList<Integer> tour = new ArrayList<>(numCities);
         boolean[] visited = new boolean[numCities];
         int startCity = random.nextInt(numCities);
         tour.add(startCity);
         visited[startCity] = true;
         for (int i = 1; i < numCities; i++) {
-            int currentCity = tour.get(i - 1);
-            int nextCity = selectNextCity(currentCity, visited);
+            int nextCity = selectNextCity(tour.get(i - 1), visited);
             tour.add(nextCity);
             visited[nextCity] = true;
         }
@@ -71,21 +70,18 @@ public class ACOAlgorithm {
         double totalProbability = 0;
         double[] probabilities = new double[numCities];
         for (int i = 0; i < numCities; i++) {
-            if (!visited[i]) {
-                double pheromone = pheromoneMatrix[currentCity][i];
-                double distance = distanceMatrix[currentCity][i];
-                probabilities[i] = Math.pow(pheromone, alpha) * Math.pow(1.0 / distance, beta);
-                totalProbability += probabilities[i];
-            }
+            if (visited[i]) continue;
+            double pheromone = pheromoneMatrix[currentCity][i];
+            double distance = distanceMatrix[currentCity][i];
+            probabilities[i] = Math.pow(pheromone, alpha) * Math.pow(1.0 / distance, beta);
+            totalProbability += probabilities[i];
         }
         double rand = random.nextDouble() * totalProbability;
         double sum = 0;
         for (int i = 0; i < numCities; i++) {
-            if (!visited[i]) {
-                sum += probabilities[i];
-                if (rand <= sum)
-                    return i;
-            }
+            sum += probabilities[i];
+            if (rand <= sum)
+                return i;
         }
         return -1;
     }
@@ -93,19 +89,17 @@ public class ACOAlgorithm {
     private double calculateTourLength(ArrayList<Integer> tour) {
         double length = 0;
         for (int i = 0; i < numCities; i++)
-            length += distanceMatrix[tour.get(i)][tour.get(i == numCities-1?0:i+1)];
+            length += distanceMatrix[tour.get(i)][tour.get((i+1) % numCities)];
         return length;
     }
 
     private void updatePheromones(ArrayList<ArrayList<Integer>> antTours) {
         for (ArrayList<Integer> tour : antTours) {
             double pheromoneToAdd = 1 / calculateTourLength(tour);
-            for (int i = 0; i < numCities - 1; i++) {
-                pheromoneMatrix[tour.get(i)][tour.get(i + 1)] += pheromoneToAdd;
-                pheromoneMatrix[tour.get(i + 1)][tour.get(i)] += pheromoneToAdd;
+            for (int i = 0; i < numCities; i++) {
+                pheromoneMatrix[tour.get(i)][tour.get((i+1) % numCities)] += pheromoneToAdd;
+                pheromoneMatrix[tour.get((i+1) % numCities)][tour.get(i)] += pheromoneToAdd;
             }
-            pheromoneMatrix[tour.get(numCities - 1)][tour.get(0)] += pheromoneToAdd;
-            pheromoneMatrix[tour.get(0)][tour.get(numCities - 1)] += pheromoneToAdd;
         }
     }
 

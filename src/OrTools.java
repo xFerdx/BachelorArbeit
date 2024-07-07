@@ -1,4 +1,3 @@
-
 import com.google.ortools.Loader;
 import com.google.ortools.constraintsolver.Assignment;
 import com.google.ortools.constraintsolver.FirstSolutionStrategy;
@@ -8,9 +7,13 @@ import com.google.ortools.constraintsolver.RoutingSearchParameters;
 import com.google.ortools.constraintsolver.main;
 
 import java.util.ArrayList;
-import java.util.logging.Logger;
 
 public class OrTools {
+
+    public double getLB(double[][] distanceMatrix){
+        Loader.loadNativeLibraries();
+        return 0;
+    }
 
     public static ArrayList<Integer> solve(double[][] distanceMatrix, int vehicleNumber, int depot) {
         Loader.loadNativeLibraries();
@@ -34,6 +37,8 @@ public class OrTools {
                         .toBuilder()
                         .setFirstSolutionStrategy(FirstSolutionStrategy.Value.PATH_CHEAPEST_ARC)
                         .build();
+
+
         Assignment solution = routing.solveWithParameters(searchParameters);
         return getSolution(routing, manager, solution);
     }

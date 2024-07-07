@@ -3,10 +3,17 @@ import java.util.stream.Collectors;
 
 public class TSPSolver {
 
-    private final double[][] lengths;
+    private double[][] lengths;
     ArrayList<Integer> solution = new ArrayList<>();
 
     public TSPSolver(double[][] lengths) {
+        this.lengths = lengths;
+    }
+
+    public TSPSolver(){
+    }
+
+    public void setLengths(double[][] lengths) {
         this.lengths = lengths;
     }
 
@@ -19,9 +26,9 @@ public class TSPSolver {
             double len = calcMSTLen(a,b,i);
             max1 = Math.max(max1, len);
         }
-        double max2 = Math.sqrt(0.5)*(Math.sqrt(lengths.length)-1/(Math.sqrt(lengths.length)));
-        System.out.println(max1);
-        System.out.println(max2);
+        //double max2 = Math.sqrt(0.5)*(Math.sqrt(lengths.length)-1/(Math.sqrt(lengths.length)));
+        //double max2 = Math.sqrt(lengths.length)*0.7078+0.551;
+        double max2 = 0;
 
         return Math.max(max1,max2);
     }
@@ -138,18 +145,22 @@ public class TSPSolver {
     }
 
     public ArrayList<Integer> nn(){
-        ArrayList<Integer> ret = new ArrayList<>(lengths.length);
+        int n = lengths.length;
+        ArrayList<Integer> ret = new ArrayList<>(n+1);
         ret.add(0);
-        while(ret.size()<lengths.length){
+        boolean[] used = new boolean[n];
+        used[0] = true;
+        while(ret.size()<n){
             int lastIdx = ret.get(ret.size()-1);
             int minIdx = -1;
             for (int i = 0; i < lengths.length; i++) {
-                if(ret.contains(i))continue;
+                if(used[i])continue;
                 if(minIdx == -1 || lengths[lastIdx][i]<lengths[lastIdx][minIdx]){
                     minIdx = i;
                 }
             }
             ret.add(minIdx);
+            used[minIdx] = true;
         }
 
         ret.add(0);
@@ -165,9 +176,7 @@ public class TSPSolver {
             double minVal = Float.MAX_VALUE;
             int minIdx = -1;
             for (int j = 1; j <= i; j++) {
-                ret.add(j,i);
-                double val = lengths[ret.get(j-1)][ret.get(j)]+lengths[ret.get(j)][ret.get(j+1)]-lengths[ret.get(j-1)][ret.get(j+1)];//calcLength(ret);
-                ret.remove(j);
+                double val = lengths[ret.get(j-1)][i]+lengths[ret.get(j)][i]-lengths[ret.get(j-1)][ret.get(j)];
                 if(val<minVal){
                     minVal = val;
                     minIdx = j;
@@ -193,18 +202,16 @@ public class TSPSolver {
             int nextCity = -1;
             int insertPosition = -1;
 
-            // Find the cheapest insertion
             for (int city = 0; city < n; city++) {
-                if (!visited[city]) {
-                    for (int i = 0; i < tour.size(); i++) {
-                        int current = tour.get(i);
-                        int next = (i + 1) % tour.size();
-                        double increase = lengths[current][city] + lengths[city][tour.get(next)] - lengths[current][tour.get(next)];
-                        if (increase < minIncrease) {
-                            minIncrease = increase;
-                            nextCity = city;
-                            insertPosition = next;
-                        }
+                if (visited[city]) continue;
+                for (int i = 0; i < tour.size(); i++) {
+                    int current = tour.get(i);
+                    int next = (i + 1) % tour.size();
+                    double increase = lengths[current][city] + lengths[city][tour.get(next)] - lengths[current][tour.get(next)];
+                    if (increase < minIncrease) {
+                        minIncrease = increase;
+                        nextCity = city;
+                        insertPosition = next;
                     }
                 }
             }
@@ -227,27 +234,24 @@ public class TSPSolver {
         visited[0] = true;
 
         while (tour.size() < n) {
-            System.out.println(tour.toString());
             int farthestCity = -1;
             int insertPosition = -1;
             double maxDistance = -1.0;
 
             for (int i = 0; i < n; i++) {
-                if (!visited[i]) {
-                    double minDistance = Double.POSITIVE_INFINITY;
-
-                    for (int j = 0; j < tour.size(); j++) {
-                        int city1 = tour.get(j);
-                        double dist = lengths[city1][i];
-                        if (dist < minDistance) {
-                            minDistance = dist;
-                        }
+                if (visited[i]) continue;
+                double minDistance = Double.POSITIVE_INFINITY;
+                for (int j = 0; j < tour.size(); j++) {
+                    int city1 = tour.get(j);
+                    double dist = lengths[city1][i];
+                    if (dist < minDistance) {
+                        minDistance = dist;
                     }
+                }
 
-                    if (minDistance > maxDistance) {
-                        maxDistance = minDistance;
-                        farthestCity = i;
-                    }
+                if (minDistance > maxDistance) {
+                    maxDistance = minDistance;
+                    farthestCity = i;
                 }
             }
 
@@ -354,21 +358,14 @@ public class TSPSolver {
         }
     }
 
-    public ArrayList<Integer> Opt2(ArrayList<Integer> l) {
-        ArrayList<Integer> bestTour = new ArrayList<>(l);
-        double bestLen = calcLength(l);
+    public void Opt2(ArrayList<Integer> l) {
         boolean improved;
-
         do {
             improved = false;
-            for (int i = 1; i < bestTour.size() - 2; i++) {
-                for (int j = i + 1; j < bestTour.size() - 1; j++) {
-                    ArrayList<Integer> temp = new ArrayList<>(bestTour);
-                    reverseSegment(temp, i, j);
-                    double newLen = calcLength(temp);
-                    if (newLen < bestLen) {
-                        bestTour = temp;
-                        bestLen = newLen;
+            for (int i = 1; i < l.size() - 2; i++) {
+                for (int j = i + 1; j < l.size() - 1; j++) {
+                    if (lengths[l.get(i-1)][l.get(j)] + lengths[l.get(i)][l.get(j+1)] < lengths[l.get(i-1)][l.get(i)] + lengths[l.get(j)][l.get(j+1)]) {
+                        reverseSegment(l,i,j);
                         improved = true;
                         break;
                     }
@@ -378,41 +375,62 @@ public class TSPSolver {
                 }
             }
         } while (improved);
-
-        return bestTour;
     }
 
 
-
-
-    public ArrayList<Integer> Opt3(ArrayList<Integer> l) {
-        ArrayList<Integer> bestTour = new ArrayList<>(l);
-        double bestLen = calcLength(l);
+    public void Opt3(ArrayList<Integer> tour) {
         boolean improved;
-
+        int n = tour.size();
         do {
             improved = false;
-            outerLoop:
-            for (int i = 1; i < bestTour.size() - 1; i++) {
-                for (int j = 1; j < bestTour.size() - 1; j++) {
-                    for (int k = 1; k < bestTour.size() - 1; k++) {
-                        ArrayList<Integer> temp = new ArrayList<>(bestTour);
-                        reverseSegment(temp, i + 1, j);
-                        reverseSegment(temp, j + 1, k);
-                        double newLen = calcLength(temp);
-                        if (newLen < bestLen) {
-                            bestTour = temp;
-                            bestLen = newLen;
-                            improved = true;
-                            break outerLoop;
-                        }
+            for (int i = 0; i < n - 3; i++) {
+                for (int j = i + 1; j < n - 2; j++) {
+                    for (int k = j + 1; k < n - 1; k++) {
+                        improved = try3OptSwap(tour, i, j, k) || improved;
                     }
                 }
             }
         } while (improved);
-
-        return bestTour;
     }
+
+    private boolean try3OptSwap(ArrayList<Integer> tour, int i, int j, int k) {
+        boolean ret = false;
+        double originalDistance = calcLength(tour);
+
+        ArrayList<ArrayList<Integer>> newTours = new ArrayList<>();
+        for (int l = 1; l < 8; l++) {
+            newTours.add(getNewTour(tour, i, j, k, l));
+        }
+
+        for (ArrayList<Integer> newTour : newTours) {
+            double newDistance = calcLength(newTour);
+            if (newDistance < originalDistance) {
+                for (int idx = 0; idx < tour.size(); idx++) {
+                    tour.set(idx, newTour.get(idx));
+                }
+                originalDistance = newDistance;
+                ret =  true;
+            }
+        }
+
+        return ret;
+    }
+
+    private ArrayList<Integer> getNewTour(ArrayList<Integer> tour, int i, int j, int k, int option) {
+        ArrayList<Integer> newTour = new ArrayList<>(tour);
+        switch (option) {
+            case 1: reverseSegment(newTour, i + 1, j); break;
+            case 2: reverseSegment(newTour, j + 1, k); break;
+            case 3: reverseSegment(newTour, i + 1, k); break;
+            case 4: reverseSegment(newTour, i + 1, j); reverseSegment(newTour, j + 1, k); break;
+            case 5: reverseSegment(newTour, i + 1, k); reverseSegment(newTour, j + 1, k); break;
+            case 6: reverseSegment(newTour, i + 1, j); reverseSegment(newTour, i + 1, k); break;
+            case 7: reverseSegment(newTour, i + 1, j); reverseSegment(newTour, j + 1, k); reverseSegment(newTour, i + 1, k); break;
+        }
+        return newTour;
+    }
+
+
 
     public ArrayList<Integer>[] MST(Integer without, boolean doubled){
         ArrayList<Integer> visited = new ArrayList<>();
@@ -491,7 +509,6 @@ public class TSPSolver {
     public void getMinWeightPerfectMatchingBF(ArrayList<Integer> vertices, ArrayList<int[]> matches, double currentLen, double[] minLen) {
         if(currentLen >= minLen[0])return;
         if(vertices.isEmpty()){
-            System.out.println("zaka");
             so = new ArrayList<>(matches);
             return;
         }
@@ -546,11 +563,11 @@ public class TSPSolver {
     public ArrayList<Integer> christofides() {
         ArrayList<Integer>[] graph = MST(null,true);
         for (int i = 0; i < graph.length; i++) {
-            System.out.println(i+": "+graph[i].toString());
+            //System.out.println(i+": "+graph[i].toString());
         }
 
         ArrayList<Integer> oddPoints = getOddPoints(graph);
-        System.out.println("oddPoints: "+oddPoints);
+        //System.out.println("oddPoints: "+oddPoints);
 
         ArrayList<int[]> s = getMinWeightPerfectMatching(oddPoints);
 
@@ -560,11 +577,11 @@ public class TSPSolver {
         for (int[] e : s) {
             graph[e[0]].add(e[1]);
             graph[e[1]].add(e[0]);
-            System.out.println(e[0]+" - "+e[1]);
+            //System.out.println(e[0]+" - "+e[1]);
         }
 
         for (int i = 0; i < graph.length; i++) {
-            System.out.println(i+": "+graph[i].toString());
+            //System.out.println(i+": "+graph[i].toString());
         }
 
         ArrayList<Integer> startRoute = new ArrayList<>();
@@ -582,11 +599,24 @@ public class TSPSolver {
     }
 
 
+    public ArrayList<Integer> linK(){
+        LinKernighan lk = new LinKernighan(lengths);
+        return lk.runAlgorithm();
+    }
 
+    public ArrayList<Integer> orTools(){
+        return OrTools.solve(lengths,1,0);
+    }
 
+    public ArrayList<Integer> aco(double antRate, double alpha, double beta, double evaporationRate, int iterations){
+        ACOAlgorithm ac = new ACOAlgorithm(lengths,antRate,alpha,beta,evaporationRate);
+        return ac.solve(iterations);
+    }
 
-
-
+    public ArrayList<Integer> gen(int generationSize, int reproductionSize, int maxIterations, float mutationRate, int tournamentSize){
+        gen g = new gen(lengths, generationSize, reproductionSize, maxIterations, mutationRate, tournamentSize);
+        return g.optimize();
+    }
 
 
 
