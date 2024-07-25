@@ -1,10 +1,7 @@
+
 import com.google.ortools.Loader;
-import com.google.ortools.constraintsolver.Assignment;
-import com.google.ortools.constraintsolver.FirstSolutionStrategy;
-import com.google.ortools.constraintsolver.RoutingIndexManager;
-import com.google.ortools.constraintsolver.RoutingModel;
-import com.google.ortools.constraintsolver.RoutingSearchParameters;
-import com.google.ortools.constraintsolver.main;
+import com.google.ortools.constraintsolver.*;
+import com.google.protobuf.Duration;
 
 import java.util.ArrayList;
 
@@ -32,11 +29,19 @@ public class OrTools {
                     return newMat[fromNode][toNode];
                 });
         routing.setArcCostEvaluatorOfAllVehicles(transitCallbackIndex);
-        RoutingSearchParameters searchParameters =
-                main.defaultRoutingSearchParameters()
-                        .toBuilder()
-                        .setFirstSolutionStrategy(FirstSolutionStrategy.Value.PATH_CHEAPEST_ARC)
-                        .build();
+//        RoutingSearchParameters searchParameters =
+//                main.defaultRoutingSearchParameters()
+//                        .toBuilder()
+//                        .setFirstSolutionStrategy(FirstSolutionStrategy.Value.PATH_CHEAPEST_ARC)
+//                        .build();
+
+        RoutingSearchParameters searchParameters = main.defaultRoutingSearchParameters().toBuilder()
+                .setFirstSolutionStrategy(FirstSolutionStrategy.Value.CHRISTOFIDES)  // Let the solver choose the best initial solution strategy
+                .setLocalSearchMetaheuristic(LocalSearchMetaheuristic.Value.GUIDED_LOCAL_SEARCH)  // Use Guided Local Search to escape local optima
+                .setTimeLimit(Duration.newBuilder().setSeconds(5).build())  // Set a time limit for the search
+                .setSavingsNeighborsRatio(1.0)  // Increase the number of neighbors considered in the Savings heuristic
+                .setSolutionLimit(1000)  // Limit the number of solutions to consider
+                .build();
 
 
         Assignment solution = routing.solveWithParameters(searchParameters);

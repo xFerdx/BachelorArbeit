@@ -1,38 +1,51 @@
 import java.util.*;
 
-public class gen {
-    private final int generationSize;
-    private final int genomeSize;
-    private final int numberOfCities;
-    private final int reproductionSize;
-    private final int maxIterations;
-    private final float mutationRate;
-    private final int tournamentSize;
-    private final SelectionType selectionType;
-    private final double[][] travelPrices;
-    private final int startingCity;
-    private final int targetFitness;
+public class GA {
+    private int generationSize;
+    private int genomeSize;
+    private int numberOfCities;
+    private int reproductionSize;
+    private int maxIterations;
+    private float mutationRate;
+    private int tournamentSize;
+    private SelectionType selectionType;
+    private int[][] travelPrices;
+    private int startingCity;
+    private int targetFitness;
 
-    public gen(double[][] travelPrices){
+    public GA(double[][] travelPrices){
         this.numberOfCities = travelPrices.length;
         this.genomeSize = numberOfCities-1;
         this.selectionType = SelectionType.TOURNAMENT;
-        this.travelPrices = travelPrices;
+        int[][] tp = new int[numberOfCities][numberOfCities];
+        for (int i = 0; i < numberOfCities; i++) {
+            for (int j = 0; j < numberOfCities; j++) {
+                tp[i][j] = (int) (travelPrices[i][j] * 1000000);
+            }
+        }
+        this.travelPrices = tp;
         this.startingCity = 0;
         this.targetFitness = 0;
 
-        generationSize = 50;
+        generationSize = 1000;
         reproductionSize = 200;
-        maxIterations = 100;
-        mutationRate = 0.1f;
+        maxIterations = 500;
+        mutationRate = 0.5f;
         tournamentSize = 40;
     }
 
-    public gen(double[][] travelPrices, int generationSize, int reproductionSize, int maxIterations, float mutationRate, int tournamentSize){
+    public GA(double[][] travelPrices, int generationSize, int reproductionSize, int maxIterations, float mutationRate, int tournamentSize){
         this.numberOfCities = travelPrices.length;
         this.genomeSize = numberOfCities-1;
         this.selectionType = SelectionType.TOURNAMENT;
-        this.travelPrices = travelPrices;
+        int[][] tp = new int[numberOfCities][numberOfCities];
+        for (int i = 0; i < numberOfCities; i++) {
+            for (int j = 0; j < numberOfCities; j++) {
+                tp[i][j] = (int) (travelPrices[i][j] * 1000000);
+            }
+        }
+
+        this.travelPrices = tp;
         this.startingCity = 0;
         this.targetFitness = 0;
 
@@ -41,6 +54,23 @@ public class gen {
         this.maxIterations = maxIterations;
         this.mutationRate = mutationRate;
         this.tournamentSize = tournamentSize;
+    }
+
+    public List<Integer> optimize(){
+        List<SalesmanGenome> population = initialPopulation();
+        SalesmanGenome globalBestGenome = population.get(0);
+        for(int i=0; i<maxIterations; i++){
+            List<SalesmanGenome> selected = selection(population);
+            population = createGeneration(selected);
+            globalBestGenome = Collections.min(population);
+            if(globalBestGenome.getFitness() < targetFitness)
+                break;
+        }
+
+        globalBestGenome.genome.add(0, startingCity);
+        globalBestGenome.genome.add(globalBestGenome.genome.size(), startingCity);
+
+        return globalBestGenome.genome;
     }
 
     public List<SalesmanGenome> initialPopulation(){
@@ -66,13 +96,13 @@ public class gen {
     }
 
     public SalesmanGenome rouletteSelection(List<SalesmanGenome> population){
-        double totalFitness = population.stream().map(SalesmanGenome::getFitness).mapToDouble(Double::doubleValue).sum();
+        int totalFitness = population.stream().map(SalesmanGenome::getFitness).mapToInt(Integer::intValue).sum();
         Random random = new Random();
-        int selectedValue = random.nextInt((int) totalFitness);
+        int selectedValue = random.nextInt(totalFitness);
         float recValue = (float) 1/selectedValue;
         float currentSum = 0;
         for(SalesmanGenome genome : population){
-            currentSum += (float) (1/genome.getFitness());
+            currentSum += (float) 1/genome.getFitness();
             if(currentSum>=recValue){
                 return genome;
             }
@@ -84,15 +114,19 @@ public class gen {
     public static <E> List<E> pickNRandomElements(List<E> list, int n) {
         Random r = new Random();
         int length = list.size();
+
         if (length < n) return null;
-        for (int i = length - 1; i >= length - n; --i) {
+
+        for (int i = length - 1; i >= length - n; --i)
+        {
             Collections.swap(list, i , r.nextInt(i + 1));
         }
         return list.subList(length - n, length);
     }
 
     public SalesmanGenome tournamentSelection(List<SalesmanGenome> population){
-        return Collections.min(pickNRandomElements(population,tournamentSize));
+        List<SalesmanGenome> selected = pickNRandomElements(population,tournamentSize);
+        return Collections.min(selected);
     }
 
     public SalesmanGenome mutate(SalesmanGenome salesman){
@@ -121,12 +155,17 @@ public class gen {
     }
 
     public List<SalesmanGenome> crossover(List<SalesmanGenome> parents){
+        // housekeeping
         Random random = new Random();
         int breakpoint = random.nextInt(genomeSize);
         List<SalesmanGenome> children = new ArrayList<>();
+
+        // copy parental genomes - we copy so we wouldn't modify in case they were
+        // chosen to participate in crossover multiple times
         List<Integer> parent1Genome = new ArrayList<>(parents.get(0).getGenome());
         List<Integer> parent2Genome = new ArrayList<>(parents.get(1).getGenome());
 
+        // creating child 1
         for(int i = 0; i<breakpoint; i++){
             int newVal;
             newVal = parent2Genome.get(i);
@@ -135,6 +174,7 @@ public class gen {
         children.add(new SalesmanGenome(parent1Genome,numberOfCities,travelPrices,startingCity));
         parent1Genome = parents.get(0).getGenome(); // reseting the edited parent
 
+        // creating child 2
         for(int i = breakpoint; i<genomeSize; i++){
             int newVal = parent1Genome.get(i);
             Collections.swap(parent2Genome,parent2Genome.indexOf(newVal),i);
@@ -142,23 +182,6 @@ public class gen {
         children.add(new SalesmanGenome(parent2Genome,numberOfCities,travelPrices,startingCity));
 
         return children;
-    }
-
-    public ArrayList<Integer> optimize(){
-        List<SalesmanGenome> population = initialPopulation();
-        SalesmanGenome globalBestGenome = population.get(0);
-        for(int i=0; i<maxIterations; i++){
-            List<SalesmanGenome> selected = selection(population);
-            population = createGeneration(selected);
-            globalBestGenome = Collections.min(population);
-            if(globalBestGenome.getFitness() < targetFitness)
-                break;
-        }
-        ArrayList<Integer> ret = (ArrayList<Integer>) globalBestGenome.genome;
-        ret.add(startingCity);
-        ret.add(0,startingCity);
-
-        return ret;
     }
 
 }
@@ -170,12 +193,12 @@ enum SelectionType {
 
 class SalesmanGenome implements Comparable {
     List<Integer> genome;
-    double[][] travelPrices;
+    int[][] travelPrices;
     int startingCity;
-    int numberOfCities;
-    double fitness;
+    int numberOfCities = 0;
+    int fitness;
 
-    public SalesmanGenome(int numberOfCities, double[][] travelPrices, int startingCity){
+    public SalesmanGenome(int numberOfCities, int[][] travelPrices, int startingCity){
         this.travelPrices = travelPrices;
         this.startingCity = startingCity;
         this.numberOfCities = numberOfCities;
@@ -183,7 +206,7 @@ class SalesmanGenome implements Comparable {
         fitness = this.calculateFitness();
     }
 
-    public SalesmanGenome(List<Integer> permutationOfCities, int numberOfCities, double[][] travelPrices, int startingCity){
+    public SalesmanGenome(List<Integer> permutationOfCities, int numberOfCities, int[][] travelPrices, int startingCity){
         genome = permutationOfCities;
         this.travelPrices = travelPrices;
         this.startingCity = startingCity;
@@ -191,8 +214,8 @@ class SalesmanGenome implements Comparable {
         fitness = this.calculateFitness();
     }
 
-    public double calculateFitness(){
-        double fitness = 0;
+    public int calculateFitness(){
+        int fitness = 0;
         int currentCity = startingCity;
         for ( int gene : genome) {
             fitness += travelPrices[currentCity][gene];
@@ -203,7 +226,7 @@ class SalesmanGenome implements Comparable {
     }
 
     private List<Integer> randomSalesman(){
-        List<Integer> result = new ArrayList<>();
+        List<Integer> result = new ArrayList<Integer>();
         for(int i=0; i<numberOfCities; i++) {
             if(i!=startingCity)
                 result.add(i);
@@ -216,10 +239,34 @@ class SalesmanGenome implements Comparable {
         return genome;
     }
 
+    public int getStartingCity() {
+        return startingCity;
+    }
 
-    public double getFitness() {
+    public int getFitness() {
         return fitness;
     }
+
+    public void setFitness(int fitness) {
+        this.fitness = fitness;
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Path: ");
+        sb.append(startingCity);
+        for ( int gene: genome ) {
+            sb.append(" ");
+            sb.append(gene);
+        }
+        sb.append(" ");
+        sb.append(startingCity);
+        sb.append("\nLength: ");
+        sb.append(this.fitness);
+        return sb.toString();
+    }
+
 
     @Override
     public int compareTo(Object o) {
@@ -232,3 +279,4 @@ class SalesmanGenome implements Comparable {
             return 0;
     }
 }
+

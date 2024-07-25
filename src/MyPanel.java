@@ -1,16 +1,20 @@
+import lks.LK;
+
 import javax.swing.*;
 import java.awt.*;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Random;
 
 public class MyPanel extends JPanel{
 
     double[][] points = new double[0][2];
     ArrayList<Integer> solution = new ArrayList<>();
     final int pointSize = 6;
-    final int[] range = {300,300};
+    final int[] rangeMax = {400,400};
+    final int[] rangeMin = {100,100};
 
 
     MyPanel(){
@@ -91,25 +95,6 @@ public class MyPanel extends JPanel{
             repaint();
         });
 
-
-        JTextField textField2 = new JTextField(5);
-        JButton button10 = new JButton("Swap");
-        button10.addActionListener(e -> {
-            TSPSolver tsp = new TSPSolver(getLengths());
-            double oldLen = tsp.calcLength(solution);
-            double newLen;
-            while(true){
-                solution = tsp.swap(solution, Integer.parseInt(textField2.getText()));
-                newLen = tsp.calcLength(solution);
-                if(oldLen==newLen)break;
-                oldLen=newLen;
-            }
-
-            System.out.println(solution.toString());
-            label.setText(String.valueOf(tsp.calcLength(solution)));
-            repaint();
-        });
-
         JButton button11 = new JButton("LB");
         button11.addActionListener(e -> {
             TSPSolver tsp = new TSPSolver(getLengths());
@@ -120,9 +105,7 @@ public class MyPanel extends JPanel{
         JButton button12 = new JButton("GA");
         button12.addActionListener(e -> {
             TSPSolver tsp = new TSPSolver(getLengths());
-            gen ga = new gen(getLengths());
-            solution = ga.optimize();
-
+            solution = tsp.gen2();
             System.out.println(solution.toString());
             label.setText(String.valueOf(tsp.calcLength(solution)));
             repaint();
@@ -177,7 +160,8 @@ public class MyPanel extends JPanel{
         JButton button18 = new JButton("LK");
         button18.addActionListener(e -> {
             TSPSolver tsp = new TSPSolver(getLengths());
-            solution = tsp.linK();
+            //solution = tsp.linK(solution);
+            solution = LK.solve(getLengths(),1);
             System.out.println(solution);
             label.setText(String.valueOf(tsp.calcLength(solution)));
             repaint();
@@ -185,7 +169,16 @@ public class MyPanel extends JPanel{
 
         JButton button19 = new JButton("Read file");
         button19.addActionListener(e -> {
-            readTSPFile("TSPFiles/pcb1173.tsp");
+            readTSPFile("C:/Users/Konrad/Documents/Informatik/qa194.tsp");
+            repaint();
+        });
+
+        JButton button20 = new JButton("con");
+        button20.addActionListener(e -> {
+            TSPSolver tsp = new TSPSolver(getLengths());
+            concorde c = new concorde();
+            solution = c.solve(points);
+            label.setText(String.valueOf(tsp.calcLength(solution)));
             repaint();
         });
 
@@ -199,8 +192,6 @@ public class MyPanel extends JPanel{
         add(button6);
         add(button7);
         add(button8);
-        add(textField2);
-        add(button10);
         add(button11);
         add(button12);
         add(button13);
@@ -210,19 +201,98 @@ public class MyPanel extends JPanel{
         add(button17);
         add(button18);
         add(button19);
+        add(button20);
 
 
     }
 
     public void generateNewPoints(int number){
         solution = new ArrayList<>();
-        points = new double[number][2];
-        for (int i = 0; i < number; i++) {
-            points[i][0] = Math.random();
-            points[i][1] = Math.random();
+        points = getRandomPoints(number);
+
+        for (double[] point : points) {
+            System.out.println(point[0] + " " + point[1]);
         }
+
         getLengths();
         repaint();
+    }
+
+    private double[][] getRandomPoints(int number){
+        double[][] p = new double[number][2];
+        for (int i = 0; i < number; i++) {
+            p[i][0] = Math.random();
+            p[i][1] = Math.random();
+        }
+        return p;
+    }
+
+    public static double[][] getGridPoints(int number, int grids) {
+        double[][] p = new double[number][2];
+
+        for (int i = 0; i < number; i++) {
+            p[i][0] = (double) ((int) (Math.random() * grids)) /grids;
+            p[i][1] = (double) ((int) (Math.random() * grids)) /grids;
+        }
+        return p;
+    }
+
+    public static double[][] getClusteredPoints(int number) {
+        Random rand = new Random();
+        double[][] points = new double[number][2];
+        double clusterRadius = 0.1;
+        int numClusters = 10;
+
+        for (int cluster = 0; cluster < numClusters; cluster++) {
+            double clusterCenterX = clusterRadius + (1 - 2 * clusterRadius) * rand.nextDouble();
+            double clusterCenterY = clusterRadius + (1 - 2 * clusterRadius) * rand.nextDouble();
+
+            int pointsPerCluster = number / numClusters;
+
+            for (int i = 0; i < pointsPerCluster; i++) {
+                double angle = rand.nextDouble() * 2 * Math.PI;
+                double radius = rand.nextDouble() * clusterRadius;
+                double x = clusterCenterX + radius * Math.cos(angle);
+                double y = clusterCenterY + radius * Math.sin(angle);
+
+                points[cluster * pointsPerCluster + i][0] = Math.min(Math.max(x, 0), 1);
+                points[cluster * pointsPerCluster + i][1] = Math.min(Math.max(y, 0), 1);
+            }
+        }
+
+        for (int i = number - (number % numClusters); i < number; i++) {
+            points[i][0] = rand.nextDouble();
+            points[i][1] = rand.nextDouble();
+        }
+
+        return points;
+    }
+
+    public static double[][] getNormalDistributedPoints(int numPoints) {
+        Random rand = new Random();
+        double[][] points = new double[numPoints][2];
+
+        for (int i = 0; i < numPoints; i++) {
+            points[i][0] = 0.5 + 0.1*rand.nextGaussian();
+            points[i][1] = 0.5 + 0.1*rand.nextGaussian();
+        }
+
+        return points;
+    }
+
+    public static double[][] getCircularPoints(int numPoints) {
+        double[][] points = new double[numPoints][2];
+
+        for (int i = 0; i < numPoints; i++) {
+            double angle = 2 * Math.PI * i / numPoints;
+            double x = 0.5 + 0.5 * Math.cos(angle);
+            double y = 0.5 + 0.5 * Math.sin(angle);
+
+            points[i][0] = x;
+            points[i][1] = y;
+        }
+
+        return points;
     }
 
     public double[][] getLengths(){
@@ -280,23 +350,34 @@ public class MyPanel extends JPanel{
         g2d.drawRect(100,100,300+pointSize,300+pointSize);
         double maxX = 0;
         double maxY = 0;
+        double minX = Double.MAX_VALUE;
+        double minY = Double.MAX_VALUE;
         for (int i = 0; i < points.length; i++) {
             maxX = Math.max(maxX,points[i][0]);
             maxY = Math.max(maxY,points[i][1]);
+            minX = Math.min(minX,points[i][0]);
+            minY = Math.min(minY,points[i][1]);
         }
         for (int i = 0; i < points.length; i++) {
             double[] point = points[i];
             g2d.setColor(i==0?Color.GREEN:Color.BLUE);
-            g2d.fillOval(100 + (int)(point[0] * range[0]/maxX), 100 + (int)(point[1] * range[1]/maxY), pointSize, pointSize);
-            if(points.length <= 50)g2d.drawString(String.valueOf(i),100 + (int)(point[0] * range[0]/maxX),100 + (int)(point[1] * range[1]/maxY));
+            g2d.fillOval((int) ((points[i][0]-minX)*(rangeMax[0]-rangeMin[0])/(maxX-minX)+rangeMin[0]),
+                    (int) ((points[i][1]-minY)*(rangeMax[1]-rangeMin[1])/(maxY-minY)+rangeMin[1]),
+                    pointSize, pointSize);
+            if(points.length <= 50)g2d.drawString(
+                    String.valueOf(i),
+                    (int) ((points[i][0]-minX)*(rangeMax[0]-rangeMin[0])/(maxX-minX)+rangeMin[0]),
+                    (int) ((points[i][1]-minY)*(rangeMax[1]-rangeMin[1])/(maxY-minY)+rangeMin[1]));
         }
 
         for (int i = 0; i < solution.size()-1; i++) {
             g2d.setColor(Color.BLACK);
-            g2d.drawLine(100 + (int) (points[solution.get(i)][0] * range[0]/maxX) + pointSize/2,
-                    100 + (int) (points[solution.get(i)][1] * range[1]/maxY) + pointSize/2,
-                    100 + (int) (points[solution.get(i+1)][0] * range[0]/maxX) + pointSize/2,
-                    100 + (int) (points[solution.get(i+1)][1] * range[1]/maxY) + pointSize/2);
+            g2d.drawLine(
+                    (int) ((points[solution.get(i)][0]-minX)*(rangeMax[0]-rangeMin[0])/(maxX-minX)+rangeMin[0]+pointSize/2),
+                    (int) ((points[solution.get(i)][1]-minY)*(rangeMax[1]-rangeMin[1])/(maxY-minY)+rangeMin[1]+pointSize/2),
+                    (int) ((points[solution.get(i+1)][0]-minX)*(rangeMax[0]-rangeMin[0])/(maxX-minX)+rangeMin[0]+pointSize/2),
+                    (int) ((points[solution.get(i+1)][1]-minY)*(rangeMax[1]-rangeMin[1])/(maxY-minY)+rangeMin[1]+pointSize/2)
+            );
         }
     }
 

@@ -8,10 +8,12 @@ public class LinKernighan {
     public int[] tour;
     private final double[][] distanceTable;
 
-    public LinKernighan(double[][] len) {
+    public LinKernighan(double[][] len, ArrayList<Integer> tour) {
         this.distanceTable = len;
         this.size = len.length;
-        this.tour = createRandomTour();
+        tour.remove(tour.size()-1);
+        this.tour = tour.stream().mapToInt(Integer::intValue).toArray();
+
     }
 
 
@@ -26,31 +28,9 @@ public class LinKernighan {
         } while(newDistance < oldDistance);
 
         ArrayList<Integer> ret =  Arrays.stream(tour).boxed().collect(Collectors.toCollection(ArrayList::new));
-
-        while (ret.get(0) != 0){
-            ret.add(ret.remove(0));
-        }
-        ret.add(0);
+        ret.add(ret.get(0));
         return ret;
     }
-
-
-    private int[] createRandomTour() {
-        int[] array = new int[size];
-        for(int i = 0; i < size; i++) {
-            array[i] = i;
-        }
-        Random random = new Random();
-        for (int i = 0; i < size; ++i) {
-            int index = random.nextInt(i + 1);
-            int a = array[index];
-            array[index] = array[i];
-            array[i] = a;
-        }
-
-        return array;
-    }
-
 
     public double getDistance() {
         double sum = 0;
@@ -66,15 +46,9 @@ public class LinKernighan {
 
     public void improve() {
         for(int i = 0; i < size; ++i) {
-            improve(i);
+            improve(i,false);
         }
     }
-
-
-    public void improve(int x){
-        improve(x, false);
-    }
-
 
     public void improve(int t1, boolean previous) {
         int t2 = previous? getPreviousIdx(t1): getNextIdx(t1);
@@ -86,7 +60,6 @@ public class LinKernighan {
             improve(t1, true);
         }
     }
-
 
     public int getPreviousIdx(int index) {
         return index == 0? size-1: index-1;
@@ -147,8 +120,6 @@ public class LinKernighan {
 
             tIndex.add(tiplus1);
             Gi -= getDistance(newT, tiplus1);
-
-
         }
         if(GStar > 0) {
             tIndex.set(k+1, tIndex.get(1));
@@ -164,10 +135,9 @@ public class LinKernighan {
             if(!isDisjunctive(tIndex, i, ti)) {
                 continue;
             }
-
             if(!isPositiveGain(tIndex, i)) {
                 continue;
-            };
+            }
             if(!nextXPossible(tIndex, i)) {
                 continue;
             }
@@ -180,7 +150,7 @@ public class LinKernighan {
             if(getDistance(ti, i) < minDistance) {
                 minNode = i;
                 minDistance = getDistance(ti, i);
-            };
+            }
         }
 
         return minNode;

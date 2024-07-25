@@ -584,12 +584,7 @@ public class TSPSolver {
             //System.out.println(i+": "+graph[i].toString());
         }
 
-        ArrayList<Integer> startRoute = new ArrayList<>();
-        startRoute.add(0);
-        ArrayList<Integer> missing = new ArrayList<>();
-        for (int i = 0; i < lengths.length; i++) {
-            missing.add(i);
-        }
+
 
         ArrayList<Integer> ec = eulerCircuit(graph);
 
@@ -599,10 +594,11 @@ public class TSPSolver {
     }
 
 
-    public ArrayList<Integer> linK(){
-        LinKernighan lk = new LinKernighan(lengths);
+    public ArrayList<Integer> linK(ArrayList<Integer> t){
+        LinKernighan lk = new LinKernighan(lengths, t);
         return lk.runAlgorithm();
     }
+
 
     public ArrayList<Integer> orTools(){
         return OrTools.solve(lengths,1,0);
@@ -613,9 +609,14 @@ public class TSPSolver {
         return ac.solve(iterations);
     }
 
-    public ArrayList<Integer> gen(int generationSize, int reproductionSize, int maxIterations, float mutationRate, int tournamentSize){
-        gen g = new gen(lengths, generationSize, reproductionSize, maxIterations, mutationRate, tournamentSize);
-        return g.optimize();
+    public ArrayList<Integer> gen2(int generations, int populationSize, int tournamentSize, float mutationRate, float elitismRate){
+        GA2 g = new GA2(lengths, generations, populationSize, tournamentSize, mutationRate, elitismRate);
+        return g.solve();
+    }
+
+    public ArrayList<Integer> gen2(){
+        GA2 g = new GA2(lengths);
+        return g.solve();
     }
 
 
