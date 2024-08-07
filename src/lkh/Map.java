@@ -1,4 +1,4 @@
-package lks;
+package lkh;
 
 import java.io.BufferedReader;
 import java.io.FileReader;

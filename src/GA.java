@@ -1,282 +1,295 @@
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.Random;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class GA {
-    private int generationSize;
-    private int genomeSize;
-    private int numberOfCities;
-    private int reproductionSize;
-    private int maxIterations;
-    private float mutationRate;
-    private int tournamentSize;
-    private SelectionType selectionType;
-    private int[][] travelPrices;
-    private int startingCity;
-    private int targetFitness;
 
-    public GA(double[][] travelPrices){
-        this.numberOfCities = travelPrices.length;
-        this.genomeSize = numberOfCities-1;
-        this.selectionType = SelectionType.TOURNAMENT;
-        int[][] tp = new int[numberOfCities][numberOfCities];
-        for (int i = 0; i < numberOfCities; i++) {
-            for (int j = 0; j < numberOfCities; j++) {
-                tp[i][j] = (int) (travelPrices[i][j] * 1000000);
-            }
-        }
-        this.travelPrices = tp;
-        this.startingCity = 0;
-        this.targetFitness = 0;
+    final double[][] lengths;
+    final int generations;
+    final int populationsSize;
+    final int tournamentSize;
+    final double mutationRate;
+    final double elitismRate;
+    final int size;
+    double[] fitness;
+    int[][] tours;
+    int[] bestTour;
+    Random rand = new Random();
 
-        generationSize = 1000;
-        reproductionSize = 200;
-        maxIterations = 500;
-        mutationRate = 0.5f;
-        tournamentSize = 40;
+
+    public GA(double[][] lengths){
+        this.lengths = lengths;
+        this.generations = 1000;
+        this.populationsSize = 1000;
+        this.tournamentSize = 5;
+        this.mutationRate = 0.2f;
+        this.elitismRate = 0.05f;
+        this.size = lengths.length+1;
     }
 
-    public GA(double[][] travelPrices, int generationSize, int reproductionSize, int maxIterations, float mutationRate, int tournamentSize){
-        this.numberOfCities = travelPrices.length;
-        this.genomeSize = numberOfCities-1;
-        this.selectionType = SelectionType.TOURNAMENT;
-        int[][] tp = new int[numberOfCities][numberOfCities];
-        for (int i = 0; i < numberOfCities; i++) {
-            for (int j = 0; j < numberOfCities; j++) {
-                tp[i][j] = (int) (travelPrices[i][j] * 1000000);
-            }
-        }
-
-        this.travelPrices = tp;
-        this.startingCity = 0;
-        this.targetFitness = 0;
-
-        this.generationSize = generationSize;
-        this.reproductionSize = reproductionSize;
-        this.maxIterations = maxIterations;
-        this.mutationRate = mutationRate;
+    public GA(double[][] lengths, int generations, int populationsSize, int tournamentSize, double mutationRate, double elitismRate) {
+        this.lengths = lengths;
+        this.generations = generations;
+        this.populationsSize = populationsSize;
         this.tournamentSize = tournamentSize;
+        this.mutationRate = mutationRate;
+        this.elitismRate = elitismRate;
+        this.size = lengths.length+1;
     }
 
-    public List<Integer> optimize(){
-        List<SalesmanGenome> population = initialPopulation();
-        SalesmanGenome globalBestGenome = population.get(0);
-        for(int i=0; i<maxIterations; i++){
-            List<SalesmanGenome> selected = selection(population);
-            population = createGeneration(selected);
-            globalBestGenome = Collections.min(population);
-            if(globalBestGenome.getFitness() < targetFitness)
-                break;
+    public ArrayList<Integer> solve(){
+
+
+        fitness = new double[populationsSize];
+        tours = new int[populationsSize][size];
+        for (int i = 0; i < populationsSize; i++) {
+            tours[i] = getNearestNeighborTour();
         }
 
-        globalBestGenome.genome.add(0, startingCity);
-        globalBestGenome.genome.add(globalBestGenome.genome.size(), startingCity);
-
-        return globalBestGenome.genome;
-    }
-
-    public List<SalesmanGenome> initialPopulation(){
-        List<SalesmanGenome> population = new ArrayList<>();
-        for(int i=0; i<generationSize; i++){
-            population.add(new SalesmanGenome(numberOfCities, travelPrices, startingCity));
+        for (int i = 0; i < generations; i++) {
+            calcFitness();
+            int[] parents = getParents();
+            int[][] offspring = crossover(parents);
+            addElites(offspring, offspring.length-parents.length);
+            addMutation(offspring);
+            if(bestTour == null || calcTourFitness(tours[findBestIdx(fitness)])>calcTourFitness(bestTour))
+                bestTour = tours[findBestIdx(fitness)];
+            tours = offspring;
         }
-        return population;
+
+
+        return IntStream.of(bestTour).boxed().collect(Collectors.toCollection(ArrayList::new));
     }
 
-    public List<SalesmanGenome> selection(List<SalesmanGenome> population){
-        List<SalesmanGenome> selected = new ArrayList<>();
-        for(int i=0; i<reproductionSize; i++){
-            if(selectionType == SelectionType.ROULETTE){
-                selected.add(rouletteSelection(population));
+    private int[] getRandTour(){
+        int[] tour = new int[size];
+        for (int i = 1; i < size - 1; i++) {
+            tour[i] = i;
+        }
+
+        for (int i = 1; i < size - 1; i++) {
+            int randomIndex = rand.nextInt(size-2)+1;
+            int temp = tour[i];
+            tour[i] = tour[randomIndex];
+            tour[randomIndex] = temp;
+        }
+        return tour;
+    }
+
+
+    private int[] getNearestNeighborTour() {
+        int[] tour = new int[size];
+        boolean[] visited = new boolean[size];
+        tour[0] = 0;
+        visited[0] = true;
+        for (int i = 1; i < size - 1; i++) {
+            int lastCity = tour[i - 1];
+            int nearestCity = -1;
+            double minDistance = Double.MAX_VALUE;
+            for (int j = 1; j < size - 1; j++) {
+                if (!visited[j]) {
+                    double distance = lengths[lastCity][j];
+                    if (distance < minDistance) {
+                        minDistance = distance;
+                        nearestCity = j;
+                    }
+                }
             }
-            else if(selectionType == SelectionType.TOURNAMENT){
-                selected.add(tournamentSelection(population));
+            tour[i] = nearestCity;
+            visited[nearestCity] = true;
+        }
+        tour[size - 1] = 0;
+        return tour;
+    }
+
+    private void calcFitness(){
+        for (int i = 0; i < populationsSize; i++) {
+            fitness[i] = calcTourFitness(tours[i]);
+        }
+    }
+
+    private double calcTourFitness(int[] tour){
+        double f = 0;
+        for (int j = 0; j < size-1; j++) {
+            f += lengths[tour[j]][tour[j+1]];
+        }
+        return 1/f;
+    }
+
+    private int[] getParents(){
+        int parentSize = (int) (populationsSize * (1-elitismRate));
+        parentSize -= parentSize%2 == 0?0:1;
+        int[] parents = new int[parentSize];
+        for (int i = 0; i < parentSize; i++) {
+            parents[i] = tournamentSelection();
+        }
+        return parents;
+    }
+
+    private int tournamentSelection(){
+        int[] candidates = new int[tournamentSize];
+        for (int i = 0; i < tournamentSize; i++) {
+            candidates[i] = rand.nextInt(populationsSize);
+        }
+        int bestFitnessIdx = 0;
+        for (int i = 1; i < candidates.length; i++) {
+            if(fitness[candidates[i]]>fitness[candidates[bestFitnessIdx]])
+                bestFitnessIdx = i;
+        }
+        return candidates[bestFitnessIdx];
+    }
+
+    private int[][] crossover(int[] parents){
+        int[][] offspring = new int[populationsSize][size];
+        for (int i = 0; i < parents.length; i+=2) {
+            int[][] offSpringPair = pmx(new int[]{parents[i],parents[i+1]});
+            offspring[i] = offSpringPair[0];
+            offspring[i+1] = offSpringPair[1];
+        }
+        return offspring;
+    }
+
+    private int[][] pmx(int[] parentPair){
+        int[] parent1 = tours[parentPair[0]];
+        int[] parent2 = tours[parentPair[1]];
+
+        int[] child1 = new int[size];
+        int[] child2 = new int[size];
+        int coPoint1 = rand.nextInt( size/2-1)+1;
+        int coPoint2 = rand.nextInt(size-1-size/2)+size/2;
+
+        Arrays.fill(child1,-1);
+        Arrays.fill(child2,-1);
+
+        for (int i = coPoint1; i <= coPoint2 ; i++) {
+            child1[i] = parent2[i];
+            child2[i] = parent1[i];
+        }
+
+        for (int i = 1; i < size-1; i++) {
+            if(i >= coPoint1 && i <= coPoint2)continue;
+
+            if(!contains(child1,parent1[i])){
+                child1[i]=parent1[i];
+            }else{
+                int val = parent1[i];
+                while(contains(child1,val)){
+                    val = parent1[idxOf(parent2,val)];
+                }
+                child1[i] = val;
+            }
+
+            if(!contains(child2,parent2[i])){
+                child2[i]=parent2[i];
+            }else{
+                int val = parent2[i];
+                while(contains(child2,val)){
+                    val = parent2[idxOf(parent1,val)];
+                }
+                child2[i] = val;
             }
         }
 
-        return selected;
+        child1[0] = 0;
+        child1[child1.length-1] = 0;
+        child2[0] = 0;
+        child2[child2.length-1] = 0;
+        return new int[][]{child1,child2};
     }
 
-    public SalesmanGenome rouletteSelection(List<SalesmanGenome> population){
-        int totalFitness = population.stream().map(SalesmanGenome::getFitness).mapToInt(Integer::intValue).sum();
-        Random random = new Random();
-        int selectedValue = random.nextInt(totalFitness);
-        float recValue = (float) 1/selectedValue;
-        float currentSum = 0;
-        for(SalesmanGenome genome : population){
-            currentSum += (float) 1/genome.getFitness();
-            if(currentSum>=recValue){
-                return genome;
+
+    private boolean contains(int[] array, int value) {
+        for (int j : array) {
+            if (j == value) {
+                return true;
             }
         }
-        int selectRandom = random.nextInt(generationSize);
-        return population.get(selectRandom);
+        return false;
     }
 
-    public static <E> List<E> pickNRandomElements(List<E> list, int n) {
-        Random r = new Random();
-        int length = list.size();
-
-        if (length < n) return null;
-
-        for (int i = length - 1; i >= length - n; --i)
-        {
-            Collections.swap(list, i , r.nextInt(i + 1));
+    private int idxOf(int[] array, int value) {
+        for (int i = 0; i < array.length; i++) {
+            if (array[i] == value) {
+                return i;
+            }
         }
-        return list.subList(length - n, length);
+
+        return -1;
     }
 
-    public SalesmanGenome tournamentSelection(List<SalesmanGenome> population){
-        List<SalesmanGenome> selected = pickNRandomElements(population,tournamentSize);
-        return Collections.min(selected);
+    private void addElites(int[][] offspring, int number){
+        Integer[] fitnessIdx = new Integer[fitness.length];
+        for (int i = 0; i < fitnessIdx.length; i++) {
+            fitnessIdx[i] = i;
+        }
+        Arrays.sort(fitnessIdx, Comparator.comparingDouble(index -> -fitness[index]));
+        for (int i = populationsSize-number; i < populationsSize; i++) {
+            offspring[i] = tours[fitnessIdx[i]];
+        }
     }
 
-    public SalesmanGenome mutate(SalesmanGenome salesman){
-        Random random = new Random();
-        float mutate = random.nextFloat();
-        if(mutate<mutationRate) {
-            List<Integer> genome = salesman.getGenome();
-            Collections.swap(genome, random.nextInt(genomeSize), random.nextInt(genomeSize));
-            return new SalesmanGenome(genome, numberOfCities, travelPrices, startingCity);
+    private void addMutation(int[][] offSpring){
+        for (int[] ints : offSpring) {
+            if (Math.random() > mutationRate) continue;
+            int t1 = rand.nextInt(size - 2) + 1;
+            int t2 = rand.nextInt(size - 2) + 1;
+            if (t1 > t2) {
+                int temp = t1;
+                t1 = t2;
+                t2 = temp;
+            }
+            swap(ints, Math.min(t1, t2), Math.max(t1, t2));
         }
-        return salesman;
     }
 
-    public List<SalesmanGenome> createGeneration(List<SalesmanGenome> population){
-        List<SalesmanGenome> generation = new ArrayList<>();
-        int currentGenerationSize = 0;
-        while(currentGenerationSize < generationSize){
-            List<SalesmanGenome> parents = pickNRandomElements(population,2);
-            List<SalesmanGenome> children = crossover(parents);
-            children.set(0, mutate(children.get(0)));
-            children.set(1, mutate(children.get(1)));
-            generation.addAll(children);
-            currentGenerationSize+=2;
+    private static void reverseSegment(int[] array, int start, int end) {
+        while (start < end) {
+            int temp = array[start];
+            array[start] = array[end];
+            array[end] = temp;
+            start++;
+            end--;
         }
-        return generation;
     }
 
-    public List<SalesmanGenome> crossover(List<SalesmanGenome> parents){
-        // housekeeping
-        Random random = new Random();
-        int breakpoint = random.nextInt(genomeSize);
-        List<SalesmanGenome> children = new ArrayList<>();
+    private static void swap(int[] array, int start, int end) {
+        int temp = array[start];
+        array[start] = array[end];
+        array[end] = temp;
+    }
 
-        // copy parental genomes - we copy so we wouldn't modify in case they were
-        // chosen to participate in crossover multiple times
-        List<Integer> parent1Genome = new ArrayList<>(parents.get(0).getGenome());
-        List<Integer> parent2Genome = new ArrayList<>(parents.get(1).getGenome());
+    private static void displacementMutation(int[] tour, int start, int end) {
+        ArrayList<Integer> t = IntStream.of(tour).boxed().collect(Collectors.toCollection(ArrayList::new));
 
-        // creating child 1
-        for(int i = 0; i<breakpoint; i++){
-            int newVal;
-            newVal = parent2Genome.get(i);
-            Collections.swap(parent1Genome,parent1Genome.indexOf(newVal),i);
+        t.remove(t.size()-1);
+
+        ArrayList<Integer> t1 = new ArrayList<>(t.subList(0, start));
+        ArrayList<Integer> t2 = new ArrayList<>(t.subList(start, end + 1));
+        ArrayList<Integer> t3 = new ArrayList<>(t.subList(end + 1, t.size()));
+
+        ArrayList<Integer> ret = new ArrayList<>(t1.size());
+        ret.addAll(t1);
+        ret.addAll(t3);
+        ret.addAll(t2);
+        ret.add(t.get(0));
+
+        for (int i = 0; i < tour.length; i++) {
+            tour[i] = ret.get(i);
         }
-        children.add(new SalesmanGenome(parent1Genome,numberOfCities,travelPrices,startingCity));
-        parent1Genome = parents.get(0).getGenome(); // reseting the edited parent
 
-        // creating child 2
-        for(int i = breakpoint; i<genomeSize; i++){
-            int newVal = parent1Genome.get(i);
-            Collections.swap(parent2Genome,parent2Genome.indexOf(newVal),i);
+    }
+
+    private int findBestIdx(double[] arr){
+        int bestIdx = 0;
+        for (int i = 1; i < arr.length; i++) {
+            if (arr[i] > arr[bestIdx]) {
+                bestIdx = i;
+            }
         }
-        children.add(new SalesmanGenome(parent2Genome,numberOfCities,travelPrices,startingCity));
-
-        return children;
+        return bestIdx;
     }
 
 }
-
-enum SelectionType {
-    TOURNAMENT,
-    ROULETTE
-}
-
-class SalesmanGenome implements Comparable {
-    List<Integer> genome;
-    int[][] travelPrices;
-    int startingCity;
-    int numberOfCities = 0;
-    int fitness;
-
-    public SalesmanGenome(int numberOfCities, int[][] travelPrices, int startingCity){
-        this.travelPrices = travelPrices;
-        this.startingCity = startingCity;
-        this.numberOfCities = numberOfCities;
-        genome = randomSalesman();
-        fitness = this.calculateFitness();
-    }
-
-    public SalesmanGenome(List<Integer> permutationOfCities, int numberOfCities, int[][] travelPrices, int startingCity){
-        genome = permutationOfCities;
-        this.travelPrices = travelPrices;
-        this.startingCity = startingCity;
-        this.numberOfCities = numberOfCities;
-        fitness = this.calculateFitness();
-    }
-
-    public int calculateFitness(){
-        int fitness = 0;
-        int currentCity = startingCity;
-        for ( int gene : genome) {
-            fitness += travelPrices[currentCity][gene];
-            currentCity = gene;
-        }
-        fitness += travelPrices[genome.get(numberOfCities-2)][startingCity];
-        return fitness;
-    }
-
-    private List<Integer> randomSalesman(){
-        List<Integer> result = new ArrayList<Integer>();
-        for(int i=0; i<numberOfCities; i++) {
-            if(i!=startingCity)
-                result.add(i);
-        }
-        Collections.shuffle(result);
-        return result;
-    }
-
-    public List<Integer> getGenome() {
-        return genome;
-    }
-
-    public int getStartingCity() {
-        return startingCity;
-    }
-
-    public int getFitness() {
-        return fitness;
-    }
-
-    public void setFitness(int fitness) {
-        this.fitness = fitness;
-    }
-
-    @Override
-    public String toString() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("Path: ");
-        sb.append(startingCity);
-        for ( int gene: genome ) {
-            sb.append(" ");
-            sb.append(gene);
-        }
-        sb.append(" ");
-        sb.append(startingCity);
-        sb.append("\nLength: ");
-        sb.append(this.fitness);
-        return sb.toString();
-    }
-
-
-    @Override
-    public int compareTo(Object o) {
-        SalesmanGenome genome = (SalesmanGenome) o;
-        if(this.fitness > genome.getFitness())
-            return 1;
-        else if(this.fitness < genome.getFitness())
-            return -1;
-        else
-            return 0;
-    }
-}
-

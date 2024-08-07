@@ -1,3 +1,5 @@
+import lkh.LK;
+
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -218,10 +220,7 @@ public class TSPSolver {
             tour.add(insertPosition, nextCity);
             visited[nextCity] = true;
         }
-
-
         tour.add(0,0);
-
         return tour;
     }
 
@@ -305,6 +304,14 @@ public class TSPSolver {
         return ret;
     }
 
+    public static double calcLength(ArrayList<Integer>l, double[][] lengths){
+        double ret = 0;
+        for (int i = 0; i < l.size()-1; i++) {
+            ret += lengths[l.get(i)][l.get(i+1)];
+        }
+        return ret;
+    }
+
 
     
     public ArrayList<Integer> swap(ArrayList<Integer> list, int z){
@@ -358,14 +365,14 @@ public class TSPSolver {
         }
     }
 
-    public void Opt2(ArrayList<Integer> l) {
+    public void Opt2(ArrayList<Integer> tour) {
         boolean improved;
         do {
             improved = false;
-            for (int i = 1; i < l.size() - 2; i++) {
-                for (int j = i + 1; j < l.size() - 1; j++) {
-                    if (lengths[l.get(i-1)][l.get(j)] + lengths[l.get(i)][l.get(j+1)] < lengths[l.get(i-1)][l.get(i)] + lengths[l.get(j)][l.get(j+1)]) {
-                        reverseSegment(l,i,j);
+            for (int i = 1; i < tour.size() - 2; i++) {
+                for (int j = i + 1; j < tour.size() - 1; j++) {
+                    if (lengths[tour.get(i-1)][tour.get(j)] + lengths[tour.get(i)][tour.get(j+1)] < lengths[tour.get(i-1)][tour.get(i)] + lengths[tour.get(j)][tour.get(j+1)]) {
+                        reverseSegment(tour,i,j);
                         improved = true;
                         break;
                     }
@@ -504,26 +511,50 @@ public class TSPSolver {
         return minMatching;
     }
 
-    ArrayList<int[]> so;
+    public ArrayList<int[]> getMinWeightPerfectMatching2(ArrayList<Integer> vertices) {
+        ArrayList<int[]> minMatching = new ArrayList<>();
+        if(vertices.size() % 2 == 1)throw new RuntimeException("not even number");
 
-    public void getMinWeightPerfectMatchingBF(ArrayList<Integer> vertices, ArrayList<int[]> matches, double currentLen, double[] minLen) {
-        if(currentLen >= minLen[0])return;
-        if(vertices.isEmpty()){
-            so = new ArrayList<>(matches);
-            return;
-        }
+        int max = vertices.stream().mapToInt(Integer::intValue).max().getAsInt();
 
-        for (int i = 1; i < vertices.size(); i++) {
-            ArrayList<Integer> newVert = new ArrayList<>(vertices);
-            newVert.remove(0);
-            newVert.remove(i-1);
-            ArrayList<int[]> newMatches = new ArrayList<>();
-            for (int j = 0; j < matches.size(); j++) {
-                newMatches.add(new int[]{matches.get(j)[0], matches.get(j)[1]});
+        while(!vertices.isEmpty()) {
+            int farthestPoint = -1;
+            double furthestDist = 0;
+
+            int[] minDist = new int[max+1];
+            for (int i: vertices) {
+                int nearestPoint = -1;
+                for (int j: vertices) {
+                    if(j == i)continue;
+                    if(nearestPoint == -1 || lengths[i][j] < lengths[i][nearestPoint]){
+                        nearestPoint = j;
+                    }
+                }
+                minDist[i] = nearestPoint;
             }
-            newMatches.add(new int[]{vertices.get(0), vertices.get(i)});
-            getMinWeightPerfectMatchingBF(newVert, newMatches, currentLen + lengths[vertices.get(0)][vertices.get(i)], minLen);
+
+            for (int i = 0; i < minDist.length; i++) {
+                if(minDist[i] == 0)continue;
+                if(farthestPoint == -1 || lengths[i][minDist[i]]>furthestDist) {
+                    furthestDist = lengths[i][minDist[i]];
+                    farthestPoint = i;
+                }
+            }
+
+            int bestPoint = -1;
+
+            for (int i: vertices){
+                if(i == farthestPoint)continue;
+                if(bestPoint == -1 || lengths[farthestPoint][i] < lengths[farthestPoint][bestPoint])
+                    bestPoint = i;
+            }
+
+
+            minMatching.add(new int[]{farthestPoint,bestPoint});
+            vertices.remove((Integer) farthestPoint);
+            vertices.remove((Integer) bestPoint);
         }
+        return minMatching;
     }
 
     public static ArrayList<Integer> eulerCircuit(List<Integer>[] graph) {
@@ -559,45 +590,25 @@ public class TSPSolver {
         eulerCir.add(eulerCir.get(0));
     }
 
-
     public ArrayList<Integer> christofides() {
         ArrayList<Integer>[] graph = MST(null,true);
-        for (int i = 0; i < graph.length; i++) {
-            //System.out.println(i+": "+graph[i].toString());
-        }
-
         ArrayList<Integer> oddPoints = getOddPoints(graph);
-        //System.out.println("oddPoints: "+oddPoints);
-
         ArrayList<int[]> s = getMinWeightPerfectMatching(oddPoints);
-
-        //etMinWeightPerfectMatchingBF(oddPoints, new ArrayList<>(), 0, new double[]{Double.MAX_VALUE});
-
-
         for (int[] e : s) {
             graph[e[0]].add(e[1]);
             graph[e[1]].add(e[0]);
-            //System.out.println(e[0]+" - "+e[1]);
         }
-
-        for (int i = 0; i < graph.length; i++) {
-            //System.out.println(i+": "+graph[i].toString());
-        }
-
-
-
         ArrayList<Integer> ec = eulerCircuit(graph);
-
         hamiltonCircuit(ec);
-
         return ec;
     }
 
 
-    public ArrayList<Integer> linK(ArrayList<Integer> t){
-        LinKernighan lk = new LinKernighan(lengths, t);
-        return lk.runAlgorithm();
+    public ArrayList<Integer> linK(){
+        return LK.solve(lengths,1);
     }
+
+
 
 
     public ArrayList<Integer> orTools(){
@@ -609,20 +620,20 @@ public class TSPSolver {
         return ac.solve(iterations);
     }
 
-    public ArrayList<Integer> gen2(int generations, int populationSize, int tournamentSize, float mutationRate, float elitismRate){
-        GA2 g = new GA2(lengths, generations, populationSize, tournamentSize, mutationRate, elitismRate);
+//    public ArrayList<Integer> ga(int generations, int populationSize, int tournamentSize, float mutationRate, float elitismRate){
+//        GA g = new GA(lengths, generations, populationSize, tournamentSize, mutationRate, elitismRate);
+//        return g.solve();
+//    }
+
+    public ArrayList<Integer> ga(int generations, int populationSize, int tournamentSize, float mutationRate, float elitismRate){
+        GA2 g = new GA2(lengths, populationSize, generations,  mutationRate);
         return g.solve();
     }
 
-    public ArrayList<Integer> gen2(){
-        GA2 g = new GA2(lengths);
+    public ArrayList<Integer> ga(){
+        GA g = new GA(lengths);
         return g.solve();
     }
-
-
-
-
-
 
 
 }

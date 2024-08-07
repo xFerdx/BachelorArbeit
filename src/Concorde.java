@@ -1,13 +1,10 @@
 import java.io.*;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 import java.util.Scanner;
-import java.util.stream.Collectors;
 
-public class concorde {
+public class Concorde {
 
-    public ArrayList<Integer> solve(double[][] points) {
+    public static ArrayList<Integer> solve(double[][] points) {
         writeToFile(points);
         System.out.println("write");
         executeScript();
@@ -17,8 +14,8 @@ public class concorde {
         return a;
     }
 
-    public void writeToFile(double[][] points) {
-        String filePath = "src/concord/in.txt";
+    private static void writeToFile(double[][] points) {
+        String filePath = "src/util/in.txt";
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(filePath))) {
             for (int i = 0; i < points.length; i++) {
                 int factor = points[0][0] < 1?1000000:1;
@@ -29,9 +26,9 @@ public class concorde {
         }
     }
 
-    public void executeScript() {
+    private static void executeScript() {
 
-        ProcessBuilder processBuilder = new ProcessBuilder("src/concord/test.bat");
+        ProcessBuilder processBuilder = new ProcessBuilder("src/util/conc.bat");
         processBuilder.redirectErrorStream(true);
         try {
             Process process = processBuilder.start();
@@ -56,11 +53,11 @@ public class concorde {
         }
     }
 
-    public ArrayList<Integer> readFromFile() {
+    private static ArrayList<Integer> readFromFile() {
         ArrayList<Integer> numbers = new ArrayList<>();
 
-        try (Scanner scanner = new Scanner(new File("src/concord/out.txt"))) {
-            scanner.useDelimiter("\\s+|\\[|\\]");
+        try (Scanner scanner = new Scanner(new File("src/util/out.txt"))) {
+            scanner.useDelimiter("\\s+|\\[|]");
 
             while (scanner.hasNext()) {
                 if (scanner.hasNextInt()) {

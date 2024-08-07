@@ -1,4 +1,4 @@
-package lks;
+package lkh;
 
 import java.util.ArrayList;
 
@@ -28,7 +28,7 @@ public class Algo {
 		cities 		= MAP.getCities();
 		N_CITIES 	= MAP.getQuantity();
 		MAX_OPT 	= K_OPT;
-		MAX_LKH	 	= N_CITIES > LKH? LKH: N_CITIES > 3? N_CITIES-3: 0;
+		MAX_LKH	 	= N_CITIES > (LKH+2)? LKH: N_CITIES > 3? N_CITIES-3: 0;
 
 		// ......... starting the algorithms .........
         kruskal();		// starting the greedy algorithm for the first tour
@@ -82,51 +82,20 @@ public class Algo {
 	/**
 	 * Generating first route with Kruskal Greedy algorithm (local tour)
 	 */
+
 	private void kruskal(){
-		final ArrayList<City[]>VERSIONS = new ArrayList<>();
-		VERSIONS.add(this.cities.clone());
-		VERSIONS.add(this.cities.clone());
-		for(int i=0; i<VERSIONS.size(); i++){
-			for(int j=0; !VERSIONS.get(i)[j].routeComplete(); j = j==this.N_CITIES-1? 0: j+1)
-				VERSIONS.get(i)[j].linkClosest();
-			if(i < VERSIONS.size()-1)  MAP.setNewVersion();													// creating a new version
+		final City[] v = this.cities.clone();
+		for(int j=0; !v[j].routeComplete(); j = j==this.N_CITIES-1? 0: j+1) {
+			v[j].linkClosest();
 		}
+		MAP.setNewVersion();
+		for(int j=0; !v[j].routeComplete(); j = j==this.N_CITIES-1? 0: j+1) {
+			v[j].linkClosest();
+		}
+
 	}
 
-	private void kruskalNormal(){
-		final ArrayList<City[]>			VERSIONS = new ArrayList<>();										// container of versions
-		final Util.Lambda1<City, Double> CENTRAL = (city) ->  MAP.getDistance(city,city);	// lambda to create a normal kruskal version
-		final Util.Lambda1<City, Double> REVERSE = (city) -> -MAP.getDistance(city,	 city.getClosest(1));	// lambda to create a reverse kruskal version
 
-		// generating two basic path versions to be elaborated by the Kruskal
-		VERSIONS.add(Util.quickSort(this.cities.clone()	, CENTRAL	));										// getting a normal kruskal version
-		VERSIONS.add(Util.quickSort(this.cities			, REVERSE	));										// getting a reverse kruskal version
-
-		// generating the local tour versions
-		for(int i=0; i<VERSIONS.size(); i++){
-			// starting the actual greedy algorithm cycle
-			for(int j=0; !VERSIONS.get(i)[j].routeComplete(); j = j==this.N_CITIES-1? 0: j+1)	VERSIONS.get(i)[j].linkClosest();
-			if(i < VERSIONS.size()-1)  MAP.setNewVersion();													// creating a new version
-		}
-
-
-		// cycling over the versions to choose the best one
-		for(double currentVer=VERSIONS.size()-1, bestDist=getRouteDistance(), bestVer=currentVer+1;	currentVer>0;	currentVer--){
-			MAP.setVersion((int)currentVer);
-			double currentDist = getRouteDistance();
-
-			if(currentDist	< bestDist){
-				bestVer		= currentVer;
-				bestDist	= currentDist;
-			}
-			if(currentVer == 1){
-				MAP.setVersion((int)bestVer);
-				this.cities = VERSIONS.get((int)bestVer-1);
-			}
-		}
-
-
-	}
 
 	/**
 	 * local tour optimiser (Chained Lin-Kernighan)
