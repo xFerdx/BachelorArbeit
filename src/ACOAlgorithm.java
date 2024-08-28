@@ -63,6 +63,7 @@ public class ACOAlgorithm {
             tour.add(nextCity);
             visited[nextCity] = true;
         }
+        //tspSolver.Opt2(tour);
         return tour;
     }
 

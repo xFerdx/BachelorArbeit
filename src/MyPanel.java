@@ -6,203 +6,226 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Objects;
 import java.util.Random;
+import java.util.Scanner;
 
 public class MyPanel extends JPanel{
 
     double[][] points = new double[0][2];
     ArrayList<Integer> solution = new ArrayList<>();
     final int pointSize = 6;
-    final int[] rangeMax = {400,400};
-    final int[] rangeMin = {100,100};
-
+    final int[] rangeMin = {100, 100};
+    final int[] rangeMax = {600, 600};
 
     MyPanel(){
-        this.setPreferredSize(new Dimension(600,500));
+        this.setPreferredSize(new Dimension(800,700));
         setFocusable(true);
         requestFocus();
+        setLayout(new BorderLayout());
 
-        JLabel label = new JLabel();
+        JPanel controlPanel = new JPanel();
+        JPanel heuristicsPanel = new JPanel();
+        JPanel optimizationPanel = new JPanel();
+        JPanel optimalPanel = new JPanel();
+        JPanel resultPanel = new JPanel();
 
-        JComboBox<String> comboBox = new JComboBox<>(new String[]{"random", "grid", "normal distro", "cluster"});
+        JLabel labelLen = new JLabel();
 
-        JTextField textField = new JTextField(5);
-        JButton button = new JButton("create Points");
-        button.addActionListener(e ->
-                generateNewPoints(Integer.parseInt(textField.getText()),(String) Objects.requireNonNull(comboBox.getSelectedItem())));
+        JComboBox<String> comboBoxDistro = new JComboBox<>(new String[]{"random", "grid", "normal distro", "cluster"});
+
+        JTextField inputNumberPoints = new JTextField(5);
+        JButton buttonCreateP = new JButton("create Points");
+        buttonCreateP.addActionListener(e -> {
+            generateNewPoints(Integer.parseInt(inputNumberPoints.getText()), (String) Objects.requireNonNull(comboBoxDistro.getSelectedItem()));
+            labelLen.setText("");
+        });
 
 
-        JButton button2 = new JButton("BF");
-        button2.addActionListener(e -> {
+        JButton buttonBF = new JButton("BF");
+        buttonBF.addActionListener(e -> {
             TSPSolver tsp = new TSPSolver(getLengths());
             solution = tsp.bruteForce();
             System.out.println(solution.toString());
-            label.setText(String.valueOf(tsp.calcLength(solution)));
+            labelLen.setText(String.valueOf(tsp.calcLength(solution)));
             repaint();
         });
 
-        JButton button3 = new JButton("HK");
-        button3.addActionListener(e -> {
+        JButton buttonHK = new JButton("HK");
+        buttonHK.addActionListener(e -> {
             TSPSolver tsp = new TSPSolver(getLengths());
             solution = tsp.tspHeldKarp();
             System.out.println(solution.toString());
-            label.setText(String.valueOf(tsp.calcLength(solution)));
+            labelLen.setText(String.valueOf(tsp.calcLength(solution)));
             repaint();
         });
 
-        JButton button4 = new JButton("NN");
-        button4.addActionListener(e -> {
+        JButton buttonNN = new JButton("NN");
+        buttonNN.addActionListener(e -> {
             TSPSolver tsp = new TSPSolver(getLengths());
             solution = tsp.nn();
             System.out.println(solution.toString());
-            label.setText(String.valueOf(tsp.calcLength(solution)));
+            labelLen.setText(String.valueOf(tsp.calcLength(solution)));
             repaint();
         });
 
-        JButton button5 = new JButton("Rand Ins");
-        button5.addActionListener(e -> {
+        JButton buttonRI = new JButton("rand Ins");
+        buttonRI.addActionListener(e -> {
             TSPSolver tsp = new TSPSolver(getLengths());
             solution = tsp.randomInsert();
             System.out.println(solution.toString());
-            label.setText(String.valueOf(tsp.calcLength(solution)));
+            labelLen.setText(String.valueOf(tsp.calcLength(solution)));
             repaint();
         });
 
-        JButton button6 = new JButton("cheap Ins");
-        button6.addActionListener(e -> {
+        JButton buttonCI = new JButton("cheap Ins");
+        buttonCI.addActionListener(e -> {
             TSPSolver tsp = new TSPSolver(getLengths());
             solution = tsp.cheapestInsertion();
             System.out.println(solution.toString());
-            label.setText(String.valueOf(tsp.calcLength(solution)));
+            labelLen.setText(String.valueOf(tsp.calcLength(solution)));
             repaint();
         });
 
+        JButton buttonFI = new JButton("far Ins");
+        buttonFI.addActionListener(e -> {
+            TSPSolver tsp = new TSPSolver(getLengths());
+            solution = tsp.farthestInsertTSP();
+            System.out.println(solution.toString());
+            labelLen.setText(String.valueOf(tsp.calcLength(solution)));
+            repaint();
+        });
 
-        JButton button7 = new JButton("rand");
-        button7.addActionListener(e -> {
+        JButton buttonRAND = new JButton("random");
+        buttonRAND.addActionListener(e -> {
             TSPSolver tsp = new TSPSolver(getLengths());
             solution = tsp.randomRoute();
             System.out.println(solution.toString());
-            label.setText(String.valueOf(tsp.calcLength(solution)));
+            labelLen.setText(String.valueOf(tsp.calcLength(solution)));
             repaint();
         });
 
-        JButton button8 = new JButton("Ant");
-        button8.addActionListener(e -> {
+        JButton buttonACO = new JButton("ACO");
+        buttonACO.addActionListener(e -> {
             TSPSolver tsp = new TSPSolver(getLengths());
             solution = tsp.aco(0.25,1.5,10.0,0.03,100);
             System.out.println(solution.toString());
-            label.setText(String.valueOf(tsp.calcLength(solution)));
+            labelLen.setText(String.valueOf(tsp.calcLength(solution)));
             repaint();
         });
 
-        JButton button11 = new JButton("LB");
-        button11.addActionListener(e -> {
+        JButton buttonLB = new JButton("Lower Bound");
+        buttonLB.addActionListener(e -> {
             TSPSolver tsp = new TSPSolver(getLengths());
             double lowerBound = tsp.lowerBound();
-            label.setText(String.valueOf(lowerBound));
+            labelLen.setText(String.valueOf(lowerBound));
         });
 
-        JButton button12 = new JButton("GA");
-        button12.addActionListener(e -> {
+        JButton buttonGA = new JButton("GA");
+        buttonGA.addActionListener(e -> {
             TSPSolver tsp = new TSPSolver(getLengths());
-            solution = tsp.ga(1000,1000,5,0.2f,0.05f);
+            solution = tsp.ga(20,200,4,0.05f,0,"swap",true);
             System.out.println(solution.toString());
-            label.setText(String.valueOf(tsp.calcLength(solution)));
+            labelLen.setText(String.valueOf(tsp.calcLength(solution)));
             repaint();
         });
 
-        JButton button13 = new JButton("Chris");
-        button13.addActionListener(e -> {
+        JButton buttonCHR = new JButton("Chris");
+        buttonCHR.addActionListener(e -> {
             TSPSolver tsp = new TSPSolver(getLengths());
             solution = tsp.christofides();
 
             System.out.println(solution.toString());
-            label.setText(String.valueOf(tsp.calcLength(solution)));
+            labelLen.setText(String.valueOf(tsp.calcLength(solution)));
             repaint();
         });
 
-        JButton button14 = new JButton("2Opt");
-        button14.addActionListener(e -> {
+        JButton button2OPT = new JButton("2Opt");
+        button2OPT.addActionListener(e -> {
             TSPSolver tsp = new TSPSolver(getLengths());
             tsp.Opt2(solution);
             System.out.println(solution.toString());
-            label.setText(String.valueOf(tsp.calcLength(solution)));
+            labelLen.setText(String.valueOf(tsp.calcLength(solution)));
             repaint();
         });
 
-        JButton button15 = new JButton("3Opt");
-        button15.addActionListener(e -> {
+        JButton button3OPT = new JButton("3Opt");
+        button3OPT.addActionListener(e -> {
             TSPSolver tsp = new TSPSolver(getLengths());
             tsp.Opt3(solution);
             System.out.println(solution.toString());
-            label.setText(String.valueOf(tsp.calcLength(solution)));
+            labelLen.setText(String.valueOf(tsp.calcLength(solution)));
             repaint();
         });
 
-        JButton button16 = new JButton("far inser");
-        button16.addActionListener(e -> {
-            TSPSolver tsp = new TSPSolver(getLengths());
-            solution = tsp.farthestInsertTSP();
-            System.out.println(solution.toString());
-            label.setText(String.valueOf(tsp.calcLength(solution)));
-            repaint();
-        });
-
-        JButton button17 = new JButton("Or-tools");
-        button17.addActionListener(e -> {
-            TSPSolver tsp = new TSPSolver(getLengths());
-            solution = tsp.orTools();
-            System.out.println(solution);
-            label.setText(String.valueOf(tsp.calcLength(solution)));
-            repaint();
-        });
-
-        JButton button18 = new JButton("LK");
-        button18.addActionListener(e -> {
+        JButton buttonLK = new JButton("LK");
+        buttonLK.addActionListener(e -> {
             TSPSolver tsp = new TSPSolver(getLengths());
             solution = tsp.linK();
             System.out.println(solution);
-            label.setText(String.valueOf(tsp.calcLength(solution)));
+            labelLen.setText(String.valueOf(tsp.calcLength(solution)));
             repaint();
         });
 
-        JButton button19 = new JButton("Read file");
-        button19.addActionListener(e -> {
-            readTSPFile("C:/Users/Konrad/Documents/Informatik/qa194.tsp");
+        JButton buttonREAD = new JButton("Read file");
+        buttonREAD.addActionListener(e -> {
+            System.out.println("Enter a filename:");
+            Scanner scanner = new Scanner(System.in);
+            readTSPFile(scanner.next());
             repaint();
         });
 
-        JButton button20 = new JButton("con");
-        button20.addActionListener(e -> {
+        JButton buttonCON = new JButton("optimal Solution");
+        buttonCON.addActionListener(e -> {
             TSPSolver tsp = new TSPSolver(getLengths());
             solution = Concorde.solve(points);
-            label.setText(String.valueOf(tsp.calcLength(solution)));
+            labelLen.setText(String.valueOf(tsp.calcLength(solution)));
             repaint();
         });
 
-        add(label);
-        add(comboBox);
-        add(textField);
-        add(button);
-        add(button2);
-        add(button3);
-        add(button4);
-        add(button5);
-        add(button6);
-        add(button7);
-        add(button8);
-        add(button11);
-        add(button12);
-        add(button13);
-        add(button14);
-        add(button15);
-        add(button16);
-        add(button17);
-        add(button18);
-        add(button19);
-        add(button20);
 
+        controlPanel.setLayout(new FlowLayout());
+        controlPanel.add(new JLabel("number of Points:"));
+        controlPanel.add(inputNumberPoints);
+        controlPanel.add(new JLabel("Distribution:"));
+        controlPanel.add(comboBoxDistro);
+        controlPanel.add(buttonCreateP);
+        controlPanel.add(buttonREAD);
 
+        heuristicsPanel.setLayout(new GridLayout(0, 1));
+        heuristicsPanel.setBorder(BorderFactory.createTitledBorder("Heuristics"));
+        heuristicsPanel.add(buttonRAND);
+        heuristicsPanel.add(buttonBF);
+        heuristicsPanel.add(buttonHK);
+        heuristicsPanel.add(buttonNN);
+        heuristicsPanel.add(buttonRI);
+        heuristicsPanel.add(buttonFI);
+        heuristicsPanel.add(buttonCI);
+        heuristicsPanel.add(buttonCHR);
+        heuristicsPanel.add(buttonACO);
+        heuristicsPanel.add(buttonGA);
+        heuristicsPanel.add(buttonLK);
+
+        optimizationPanel.setLayout(new GridLayout(0, 1));
+        optimizationPanel.setBorder(BorderFactory.createTitledBorder("Optimizations"));
+        optimizationPanel.add(button2OPT);
+        optimizationPanel.add(button3OPT);
+
+        optimalPanel.setLayout(new GridLayout(0, 1));
+        optimalPanel.setBorder(BorderFactory.createTitledBorder("Optimal solution"));
+        optimalPanel.add(buttonCON);
+
+        resultPanel.setLayout(new FlowLayout());
+        resultPanel.setBorder(BorderFactory.createTitledBorder("Result"));
+        resultPanel.add(labelLen);
+
+        JPanel solverPanel = new JPanel();
+        solverPanel.setLayout(new BoxLayout(solverPanel, BoxLayout.Y_AXIS));
+        solverPanel.add(heuristicsPanel);
+        solverPanel.add(optimizationPanel);
+        solverPanel.add(optimalPanel);
+
+        add(controlPanel, BorderLayout.NORTH);
+        add(solverPanel, BorderLayout.EAST);
+        add(resultPanel, BorderLayout.SOUTH);
     }
 
     public void generateNewPoints(int number, String type){
@@ -306,9 +329,11 @@ public class MyPanel extends JPanel{
     }
 
     public void readTSPFile(String filePath) {
+        solution = new ArrayList<>();
         ArrayList<double[]> nodeList = new ArrayList<>();
 
-        try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
+
+        try (BufferedReader br = new BufferedReader(new FileReader("tspProblems/"+filePath))) {
             String line;
             boolean startReadingNodes = false;
 
@@ -320,6 +345,10 @@ public class MyPanel extends JPanel{
 
                 if (line.trim().equals("EOF")) {
                     break;
+                }
+
+                if (line.startsWith("EDGE_WEIGHT_TYPE") && !line.contains("EUC_2D")) {
+                    throw new IllegalArgumentException("Unsupported "+line);
                 }
 
                 if (startReadingNodes) {
@@ -347,17 +376,38 @@ public class MyPanel extends JPanel{
     public void paint(Graphics g){
         super.paint(g);
         Graphics2D g2d = (Graphics2D) g;
-        g2d.drawRect(100,100,300+pointSize,300+pointSize);
+        g2d.drawRect(rangeMin[0],rangeMin[1],rangeMax[0]-rangeMin[0]+pointSize,rangeMax[1]-rangeMin[1]+pointSize);
+
         double maxX = 0;
         double maxY = 0;
         double minX = Double.MAX_VALUE;
         double minY = Double.MAX_VALUE;
+
         for (double[] point : points) {
             maxX = Math.max(maxX, point[0]);
             maxY = Math.max(maxY, point[1]);
             minX = Math.min(minX, point[0]);
             minY = Math.min(minY, point[1]);
         }
+
+        if(points.length <= 1){
+            maxX = 1;
+            maxY = 1;
+            minX = 0;
+            minY = 0;
+        }
+
+        g2d.drawString("X", (rangeMax[0]+rangeMin[0])/2, rangeMin[1]-2);
+        g2d.drawString("Y", rangeMin[0]-10, (rangeMax[1]+rangeMin[1])/2);
+
+        g2d.drawString(String.format("%.2f", minX), rangeMin[0]+10, rangeMin[1]-3);
+        g2d.drawString(String.format("%.2f", maxX), rangeMax[0]-10, rangeMin[1]-3);
+        FontMetrics fm = g2d.getFontMetrics(g2d.getFont());
+        String s1 = String.format("%.2f", minY);
+        String s2 = String.format("%.2f", maxY);
+        g2d.drawString(s1, rangeMin[0]-fm.stringWidth(s1), rangeMin[1]+15);
+        g2d.drawString(s2, rangeMin[0]-fm.stringWidth(s2), rangeMax[1]-5);
+
         for (int i = 0; i < points.length; i++) {
             g2d.setColor(i==0?Color.GREEN:Color.BLUE);
             g2d.fillOval((int) ((points[i][0]-minX)*(rangeMax[0]-rangeMin[0])/(maxX-minX)+rangeMin[0]),

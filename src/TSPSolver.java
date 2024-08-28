@@ -1,4 +1,4 @@
-import lkh.LK;
+import lk.LK;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -625,8 +625,13 @@ public class TSPSolver {
 //        return g.solve();
 //    }
 
+    public ArrayList<Integer> ga(int generations, int populationSize, int tournamentSize, float mutationRate, float elitismRate, String mutation, boolean opt){
+        GA g = new GA(lengths, generations, populationSize, tournamentSize, mutationRate, elitismRate, mutation, opt);
+        return g.solve();
+    }
+
     public ArrayList<Integer> ga(int generations, int populationSize, int tournamentSize, float mutationRate, float elitismRate){
-        GA2 g = new GA2(lengths, populationSize, generations,  mutationRate);
+        GA g = new GA(lengths, generations, populationSize, tournamentSize, mutationRate, elitismRate, "swap", false);
         return g.solve();
     }
 

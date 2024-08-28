@@ -1,6 +1,7 @@
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -11,20 +12,156 @@ import java.util.concurrent.Callable;
 public class Main {
     public static void main(String[] args) throws Exception {
 
-//        new MyFrame();
-//        try {
-//            return;
-//        } catch (Exception e) {
-//
-//        }
-
-        acoERMoreIts();
+        new MyFrame();
 
     }
 
+    private static void HGAMR() throws IOException {
+        double[][] values = new double[1001][3];
+
+        for (int j = 0; j < 5; j++) {
+            double[][] points = getPoints(100);
+            double[][] lengths = getLen(points);
+            TSPSolver tsp = new TSPSolver(lengths);
+            double optimal = TSPSolver.calcLength(Concorde.solve(points), lengths);
+            for (int i = 0; i <= 1000; i++) {
+                double currentLen = tsp.calcLength(tsp.ga(100, 100, 5, i / 1000f, 0.05f, "swap", true));
+                values[i][0] += (currentLen / optimal)/5;
+                currentLen = tsp.calcLength(tsp.ga(100, 100, 5, i / 1000f, 0.05f, "disp", true));
+                values[i][1] += (currentLen / optimal)/5;
+                currentLen = tsp.calcLength(tsp.ga(100, 100, 5, i / 1000f, 0.05f, "scramble", true));
+                values[i][2] += (currentLen / optimal)/5;
+                System.out.println(j+" "+i);
+            }
+        }
+
+
+        writeToExcel(values);
+    }
+
+    private static void HGATS() throws IOException {
+
+        double[] values = new double[1001];
+
+        for (int j = 0; j < 20; j++) {
+            double[][] points = getPoints(100);
+            double[][] lengths = getLen(points);
+            TSPSolver tsp = new TSPSolver(lengths);
+            double optimal = TSPSolver.calcLength(Concorde.solve(points), lengths);
+            for (int i = 1; i <= 100; i++) {
+                double currentLen = tsp.calcLength(tsp.ga(20, 200, i, 0.05f, 0.05f, "swap", true));
+                values[i] += (currentLen / optimal)/5;
+                System.out.println(j+" "+i);
+            }
+        }
+
+
+        writeToExcel(values);
+    }
+
+    private static void HGAER() throws IOException {
+        double[] values = new double[1001];
+
+        for (int j = 0; j < 5; j++) {
+            double[][] points = getPoints(100);
+            double[][] lengths = getLen(points);
+            TSPSolver tsp = new TSPSolver(lengths);
+            double optimal = TSPSolver.calcLength(Concorde.solve(points), lengths);
+            for (int i = 0; i <= 1000; i++) {
+                double currentLen = tsp.calcLength(tsp.ga(20, 200, 4, 0.05f, i/1000f, "swap", true));
+                values[i] += (currentLen / optimal)/5;
+                System.out.println(j+" "+i);
+            }
+        }
+
+        writeToExcel(values);
+    }
+
+    private static void HGAPS() throws IOException {
+        double[] values = new double[401];
+
+        for (int j = 0; j < 5; j++) {
+            double[][] points = getPoints(100);
+            double[][] lengths = getLen(points);
+            TSPSolver tsp = new TSPSolver(lengths);
+            double optimal = TSPSolver.calcLength(Concorde.solve(points), lengths);
+            for (int i = 1; i <= 400; i++) {
+                double currentLen = tsp.calcLength(tsp.ga(20, i, 5, 0.05f, 0.05f, "swap", true));
+                values[i] += (currentLen / optimal)/5;
+                System.out.println(j+" "+i);
+            }
+        }
+
+        writeToExcel(values);
+    }
+
+    private static void HGAGen() throws IOException {
+        double[] values = new double[401];
+
+        for (int j = 0; j < 5; j++) {
+            double[][] points = getPoints(200);
+            double[][] lengths = getLen(points);
+            TSPSolver tsp = new TSPSolver(lengths);
+            double optimal = TSPSolver.calcLength(Concorde.solve(points), lengths);
+            for (int i = 1; i <= 400; i++) {
+                double currentLen = tsp.calcLength(tsp.ga(i, 100, 5, 0.05f, 0.05f, "swap", true));
+                values[i] += (currentLen / optimal)/5;
+                System.out.println(j+" "+i);
+            }
+        }
+
+        writeToExcel(values);
+    }
+
+    private static void HGAvsGA() throws IOException {
+        double[][] values = new double[5][2];
+
+        int[] p = {10,50,100,200};
+
+        for (int j = 0; j < 5; j++) {
+            for (int i = 0; i < p.length; i++) {
+                double[][] points = getPoints(p[i]);
+                double[][] lengths = getLen(points);
+                TSPSolver tsp = new TSPSolver(lengths);
+                double optimal = TSPSolver.calcLength(Concorde.solve(points), lengths);
+                double currentLen = tsp.calcLength(tsp.ga(100, 100, 5, 0.2f, 0.05f, "swap",true));
+                values[i][0] += (currentLen / optimal)/5;
+                currentLen = tsp.calcLength(tsp.ga(100, 100, 5, 0.2f, 0.05f, "swap",false));
+                values[i][1] += (currentLen / optimal)/5;
+            }
+
+        }
+
+        writeToExcel(values);
+    }
+
+    private static void reduceExcelSize(String excelFilePath) {
+        int maxOverride = 100 * 1024 * 1024;
+        org.apache.poi.util.IOUtils.setByteArrayMaxOverride(maxOverride);
+        try (FileInputStream inputStream = new FileInputStream(excelFilePath);
+             Workbook inputWorkbook = new XSSFWorkbook(inputStream);
+             FileOutputStream outputStream = new FileOutputStream(excelFilePath)) {
+            Sheet inputSheet = inputWorkbook.getSheetAt(0);
+            Sheet outputSheet = inputWorkbook.createSheet("Reduced");
+
+            int rowCounter = 0;
+            for (Row row : inputSheet) {
+                if (rowCounter % 100 == 0) {
+                    outputSheet.createRow(rowCounter / 100).createCell(0).setCellValue(row.getCell(0).getNumericCellValue());
+                }
+                rowCounter++;
+            }
+
+            inputWorkbook.write(outputStream);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+
 
     private static void genTournamentSize() throws IOException {
-
         double[][] points = getPoints(100);
         double[][] lengths = getLen(points);
         TSPSolver tsp = new TSPSolver(lengths);
@@ -132,7 +269,6 @@ public class Main {
 
         double[] values = new double[400];
 
-
         for (int i = 0; i < 5; i++) {
             double[][] p = getPoints(100);
             double[][] len = getLen(p);
@@ -146,8 +282,6 @@ public class Main {
             }
 
         }
-
-
         writeToExcel(values);
 
     }
@@ -233,15 +367,15 @@ public class Main {
 
         ArrayList<Callable<ArrayList<Integer>>> algs = new ArrayList<>();
 
-        algs.add(tsp::randomRoute);
-        algs.add(tsp::nn);
-        algs.add(tsp::cheapestInsertion);
-        algs.add(tsp::farthestInsertTSP);
-        algs.add(tsp::randomInsert);
-        algs.add(tsp::christofides);
-        algs.add(() -> tsp.aco(0.25f, 1.5f, 10f, 0.03f, 100));
-        algs.add(() -> tsp.ga(1000, 1000, 5, 0.2f, 0.05f));
-        algs.add(tsp::linK);
+//        algs.add(tsp::randomRoute);
+//        algs.add(tsp::nn);
+//        algs.add(tsp::cheapestInsertion);
+//        algs.add(tsp::farthestInsertTSP);
+//        algs.add(tsp::randomInsert);
+//        algs.add(tsp::christofides);
+//        algs.add(() -> tsp.aco(0.25f, 1.5f, 10f, 0.03f, 100));
+        algs.add(() -> tsp.ga(20, 200, 4, 0.05f, 0f,"swap",true));
+//        algs.add(tsp::linK);
 
 
         double[][] times = new double[iter][algs.size() * 3];
@@ -273,16 +407,18 @@ public class Main {
         int iter = 200;
 
         ArrayList<Callable<ArrayList<Integer>>> algs = new ArrayList<>();
-        algs.add(tsp::nn);
-        algs.add(tsp::cheapestInsertion);
-        algs.add(tsp::farthestInsertTSP);
-        algs.add(tsp::randomInsert);
-        algs.add(tsp::christofides);
-        algs.add(() -> tsp.aco(0.25f, 1.5f, 10f, 0.03f, 100));
-        algs.add(() -> tsp.ga(1000, 1000, 5, 0.2f, 0.05f));
-        algs.add(tsp::linK);
+//        algs.add(tsp::nn);
+//        algs.add(tsp::cheapestInsertion);
+//        algs.add(tsp::farthestInsertTSP);
+//        algs.add(tsp::randomInsert);
+//        algs.add(tsp::christofides);
+//        algs.add(() -> tsp.aco(0.25f, 1.5f, 10f, 0.03f, 100));
+        algs.add(() -> tsp.ga(20, 200, 4, 0.05f, 0f,"swap",true));
+//        algs.add(tsp::linK);
+
 
         double[][] times = new double[iter][algs.size()];
+//        double[][] times = new double[iter][2];
         for (int i = 3; i < iter; i++) {
             int its = 10;
             for (int j = 0; j < its; j++) {
@@ -298,6 +434,14 @@ public class Main {
                     double currentLen = tsp.calcLength(algs.get(k).call());
                     times[i][k] += (currentLen / optimal) / its;
                 }
+//                ArrayList<Integer> Route = tsp.randomRoute();
+//                tsp.Opt2(Route);
+//                double currentLen = tsp.calcLength(Route);
+//                times[i][0] += (currentLen / optimal) / its;
+//                Route = tsp.randomRoute();
+//                tsp.Opt3(Route);
+//                currentLen = tsp.calcLength(Route);
+//                times[i][1] += (currentLen / optimal) / its;
             }
         }
 
@@ -310,16 +454,16 @@ public class Main {
         int iter = 100;
 
         ArrayList<Callable<ArrayList<Integer>>> algs = new ArrayList<>();
-        algs.add(tsp::randomRoute);
-        algs.add(tsp::randomRoute);
-        algs.add(tsp::nn);
-        algs.add(tsp::cheapestInsertion);
-        algs.add(tsp::farthestInsertTSP);
-        algs.add(tsp::randomInsert);
-        algs.add(tsp::christofides);
-        algs.add(() -> tsp.aco(0.25f, 1.5f, 10f, 0.03f, 100));
-        algs.add(() -> tsp.ga(1000, 1000, 5, 0.2f, 0.05f));
-        algs.add(tsp::linK);
+//        algs.add(tsp::randomRoute);
+//        algs.add(tsp::randomRoute);
+//        algs.add(tsp::nn);
+//        algs.add(tsp::cheapestInsertion);
+//        algs.add(tsp::farthestInsertTSP);
+//        algs.add(tsp::randomInsert);
+//        algs.add(tsp::christofides);
+//        algs.add(() -> tsp.aco(0.25f, 1.5f, 10f, 0.03f, 100));
+        algs.add(() -> tsp.ga(20, 200, 4, 0.05f, 0f,"swap",true));
+//        algs.add(tsp::linK);
 
         double[][] times = new double[iter][algs.size()];
         for (int i = 3; i < iter; i++) {
@@ -389,16 +533,16 @@ public class Main {
     private static void differentPointDistribution() throws Exception {
         ArrayList<Callable<ArrayList<Integer>>> algs = new ArrayList<>();
         TSPSolver tsp = new TSPSolver();
-        algs.add(tsp::randomRoute);
-        algs.add(tsp::randomRoute);
-        algs.add(tsp::nn);
-        algs.add(tsp::cheapestInsertion);
-        algs.add(tsp::farthestInsertTSP);
-        algs.add(tsp::randomInsert);
-        algs.add(tsp::christofides);
-        algs.add(() -> tsp.aco(0.25f, 1.5f, 10f, 0.03f, 100));
-        algs.add(() -> tsp.ga(1000, 1000, 5, 0.2f, 0.05f));
-        algs.add(tsp::linK);
+//        algs.add(tsp::randomRoute);
+//        algs.add(tsp::randomRoute);
+//        algs.add(tsp::nn);
+//        algs.add(tsp::cheapestInsertion);
+//        algs.add(tsp::farthestInsertTSP);
+//        algs.add(tsp::randomInsert);
+//        algs.add(tsp::christofides);
+//        algs.add(() -> tsp.aco(0.25f, 1.5f, 10f, 0.03f, 100));
+        algs.add(() -> tsp.ga(20, 200, 4, 0.05f, 0f,"swap",true));
+//        algs.add(tsp::linK);
 
         int iter = 100;
 
@@ -420,8 +564,8 @@ public class Main {
                 double optimal = tsp.calcLength(Concorde.solve(p));
                 for (int k = 0; k < algs.size(); k++) {
                     ArrayList<Integer> currentRoute = algs.get(k).call();
-                    if(k == 0)tsp.Opt2(currentRoute);
-                    else if (k == 1)tsp.Opt3(currentRoute);
+//                    if(k == 0)tsp.Opt2(currentRoute);
+//                    else if (k == 1)tsp.Opt3(currentRoute);
 
                     values[j*(iter+1)+i][k] = tsp.calcLength(currentRoute)/optimal;
 
@@ -446,10 +590,10 @@ public class Main {
 //        algs.add(tsp::randomInsert);
 //        algs.add(tsp::christofides);
 //        algs.add(() -> tsp.aco(0.25f, 1.5f, 10f, 0.03f, 100));
-//        algs.add(() -> tsp.ga(1000, 1000, 5, 0.2f, 0.05f));
+        algs.add(() -> tsp.ga(20, 200, 4, 0.05f, 0f,"swap",true));
 //        algs.add(tsp::linK);
-        algs.add(() -> tsp.Opt2(tsp.nn()));
-        algs.add(() -> tsp.Opt3(tsp.nn()));
+//        algs.add(() -> tsp.Opt2(tsp.nn()));
+//        algs.add(() -> tsp.Opt3(tsp.nn()));
 
 
 

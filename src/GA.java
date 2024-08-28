@@ -18,6 +18,8 @@ public class GA {
     int[][] tours;
     int[] bestTour;
     Random rand = new Random();
+    String mutation;
+    boolean opt;
 
 
     public GA(double[][] lengths){
@@ -30,7 +32,7 @@ public class GA {
         this.size = lengths.length+1;
     }
 
-    public GA(double[][] lengths, int generations, int populationsSize, int tournamentSize, double mutationRate, double elitismRate) {
+    public GA(double[][] lengths, int generations, int populationsSize, int tournamentSize, double mutationRate, double elitismRate, String mutation, boolean opt) {
         this.lengths = lengths;
         this.generations = generations;
         this.populationsSize = populationsSize;
@@ -38,15 +40,15 @@ public class GA {
         this.mutationRate = mutationRate;
         this.elitismRate = elitismRate;
         this.size = lengths.length+1;
+        this.mutation = mutation;
+        this.opt = opt;
     }
 
     public ArrayList<Integer> solve(){
-
-
         fitness = new double[populationsSize];
         tours = new int[populationsSize][size];
         for (int i = 0; i < populationsSize; i++) {
-            tours[i] = getNearestNeighborTour();
+            tours[i] = getRandTour();
         }
 
         for (int i = 0; i < generations; i++) {
@@ -54,6 +56,13 @@ public class GA {
             int[] parents = getParents();
             int[][] offspring = crossover(parents);
             addElites(offspring, offspring.length-parents.length);
+
+            if(opt) {
+                for (int[] o : offspring) {
+                    Opt2(o);
+                }
+            }
+
             addMutation(offspring);
             if(bestTour == null || calcTourFitness(tours[findBestIdx(fitness)])>calcTourFitness(bestTour))
                 bestTour = tours[findBestIdx(fitness)];
@@ -236,12 +245,19 @@ public class GA {
             if (Math.random() > mutationRate) continue;
             int t1 = rand.nextInt(size - 2) + 1;
             int t2 = rand.nextInt(size - 2) + 1;
-            if (t1 > t2) {
-                int temp = t1;
-                t1 = t2;
-                t2 = temp;
+            switch (mutation){
+                case "swap":
+                    swap(ints, Math.min(t1, t2), Math.max(t1, t2));
+                    break;
+                case "disp":
+                    displacement(ints, Math.min(t1, t2), Math.max(t1, t2));
+                    break;
+                case "scramble":
+                    scramble(ints, Math.min(t1, t2), Math.max(t1, t2));
+                    break;
+                default:
+                    throw new IllegalArgumentException("no such mutation");
             }
-            swap(ints, Math.min(t1, t2), Math.max(t1, t2));
         }
     }
 
@@ -255,13 +271,22 @@ public class GA {
         }
     }
 
-    private static void swap(int[] array, int start, int end) {
+    private void swap(int[] array, int start, int end) {
         int temp = array[start];
         array[start] = array[end];
         array[end] = temp;
     }
 
-    private static void displacementMutation(int[] tour, int start, int end) {
+    private void scramble(int[] array, int start, int end) {
+        for (int i = end; i > start; i--) {
+            int j = rand.nextInt(i - start + 1) + start;
+            int temp = array[i];
+            array[i] = array[j];
+            array[j] = temp;
+        }
+    }
+
+    private void displacement(int[] tour, int start, int end) {
         ArrayList<Integer> t = IntStream.of(tour).boxed().collect(Collectors.toCollection(ArrayList::new));
 
         t.remove(t.size()-1);
@@ -291,5 +316,27 @@ public class GA {
         }
         return bestIdx;
     }
+
+    private void Opt2(int[] tour) {
+        boolean improved;
+        do {
+            improved = false;
+            for (int i = 1; i < tour.length - 2; i++) {
+                for (int j = i + 1; j < tour.length - 1; j++) {
+                    if (lengths[tour[i-1]][tour[j]] + lengths[tour[i]][tour[j+1]] <
+                            lengths[tour[i-1]][tour[i]] + lengths[tour[j]][tour[j+1]]) {
+                        reverseSegment(tour,i,j);
+                        improved = true;
+                        break;
+                    }
+                }
+                if (improved) {
+                    break;
+                }
+            }
+        } while (improved);
+    }
+
+
 
 }
