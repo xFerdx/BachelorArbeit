@@ -1,16 +1,9 @@
-import org.apache.poi.ss.usermodel.*;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.concurrent.Callable;
 
 public class Main {
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args){
 
         new MyFrame();
 
@@ -135,29 +128,6 @@ public class Main {
         writeToExcel(values);
     }
 
-    private static void reduceExcelSize(String excelFilePath) {
-        int maxOverride = 100 * 1024 * 1024;
-        org.apache.poi.util.IOUtils.setByteArrayMaxOverride(maxOverride);
-        try (FileInputStream inputStream = new FileInputStream(excelFilePath);
-             Workbook inputWorkbook = new XSSFWorkbook(inputStream);
-             FileOutputStream outputStream = new FileOutputStream(excelFilePath)) {
-            Sheet inputSheet = inputWorkbook.getSheetAt(0);
-            Sheet outputSheet = inputWorkbook.createSheet("Reduced");
-
-            int rowCounter = 0;
-            for (Row row : inputSheet) {
-                if (rowCounter % 100 == 0) {
-                    outputSheet.createRow(rowCounter / 100).createCell(0).setCellValue(row.getCell(0).getNumericCellValue());
-                }
-                rowCounter++;
-            }
-
-            inputWorkbook.write(outputStream);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
 
 
 
@@ -246,7 +216,7 @@ public class Main {
                 TSPSolver tsp = new TSPSolver(len);
                 double optimal;
                 if (i < 22)
-                    optimal = tsp.calcLength(tsp.tspHeldKarp());
+                    optimal = tsp.calcLength(tsp.heldKarp());
                 else
                     optimal = tsp.calcLength(Concorde.solve(p));
 
@@ -337,8 +307,8 @@ public class Main {
 
         algs.add(tsp::nn);
         algs.add(tsp::cheapestInsertion);
-        algs.add(tsp::farthestInsertTSP);
-        algs.add(tsp::randomInsert);
+        algs.add(tsp::farthestInsertion);
+        algs.add(tsp::randomInsertion);
         algs.add(tsp::christofides);
         algs.add(() -> tsp.aco(0.25f, 1.5f, 10f, 0.03f, 100));
         algs.add(() -> tsp.ga(1000, 1000, 5, 0.2f, 0.05f));
@@ -427,7 +397,7 @@ public class Main {
                 tsp.setLengths(getLen(points));
                 double optimal;
                 if (i < 22)
-                    optimal = tsp.calcLength(tsp.tspHeldKarp());
+                    optimal = tsp.calcLength(tsp.heldKarp());
                 else
                     optimal = tsp.calcLength(Concorde.solve(points));
                 for (int k = 0; k < algs.size(); k++) {
@@ -474,7 +444,7 @@ public class Main {
                 tsp.setLengths(getLen(points));
                 double optimal;
                 if (i < 22)
-                    optimal = tsp.calcLength(tsp.tspHeldKarp());
+                    optimal = tsp.calcLength(tsp.heldKarp());
                 else
                     optimal = tsp.calcLength(Concorde.solve(points));
                 for (int k = 0; k < algs.size(); k++) {
@@ -498,11 +468,11 @@ public class Main {
 
         ArrayList<Runnable> algs = new ArrayList<>();
         algs.add(tsp::bruteForce);
-        algs.add(tsp::tspHeldKarp);
+        algs.add(tsp::heldKarp);
         algs.add(tsp::nn);
         algs.add(tsp::cheapestInsertion);
-        algs.add(tsp::farthestInsertTSP);
-        algs.add(tsp::randomInsert);
+        algs.add(tsp::farthestInsertion);
+        algs.add(tsp::randomInsertion);
         algs.add(tsp::christofides);
         algs.add(() -> tsp.Opt2(tsp.randomRoute()));
         algs.add(() -> tsp.Opt3(tsp.randomRoute()));
@@ -651,54 +621,11 @@ public class Main {
     }
 
     public static void writeToExcel(double[][] times) throws IOException {
-        String filePath = "example.xlsx";
-        Workbook workbook = new XSSFWorkbook(Files.newInputStream(Paths.get(filePath)));
 
-        Sheet sheet = workbook.getSheetAt(0);
-
-        clearSheet(sheet);
-
-        for (int rowIndex = 0; rowIndex < times.length; rowIndex++) {
-            Row row = sheet.createRow(rowIndex);
-            for (int colIndex = 0; colIndex < times[0].length; colIndex++) {
-                if (times[rowIndex][colIndex] == 0) continue;
-                Cell cell = row.createCell(colIndex);
-                cell.setCellValue(times[rowIndex][colIndex]);
-            }
-        }
-
-        FileOutputStream fileOut = new FileOutputStream(filePath);
-        workbook.write(fileOut);
-        workbook.close();
     }
 
     public static void writeToExcel(double[] times) throws IOException {
-        String filePath = "example.xlsx";
-        Workbook workbook = new XSSFWorkbook(Files.newInputStream(Paths.get(filePath)));
 
-        Sheet sheet = workbook.getSheetAt(0);
-
-        clearSheet(sheet);
-
-        for (int rowIndex = 0; rowIndex < times.length; rowIndex++) {
-            Row row = sheet.createRow(rowIndex);
-            if (times[rowIndex] == 0) continue;
-            Cell cell = row.createCell(0);
-            cell.setCellValue(times[rowIndex]);
-        }
-
-        FileOutputStream fileOut = new FileOutputStream(filePath);
-        workbook.write(fileOut);
-        workbook.close();
     }
 
-
-    public static void clearSheet(Sheet sheet) {
-        for (int i = sheet.getLastRowNum(); i >= 0; i--) {
-            Row row = sheet.getRow(i);
-            if (row != null) {
-                sheet.removeRow(row);
-            }
-        }
-    }
 }

@@ -3,7 +3,7 @@ import java.util.Arrays;
 import java.util.Objects;
 import java.util.Random;
 
-public class ACOAlgorithm {
+public class ACO {
     private final double[][] distanceMatrix;
     private final double[][] pheromoneMatrix;
     private final int numAnts;
@@ -13,7 +13,7 @@ public class ACOAlgorithm {
     private final int numCities;
     private final Random random;
 
-    public ACOAlgorithm(double[][] distanceMatrix, double antRate, double alpha, double beta, double evaporationRate) {
+    public ACO(double[][] distanceMatrix, double antRate, double alpha, double beta, double evaporationRate) {
         this.distanceMatrix = distanceMatrix;
         this.numAnts = (int) Math.max(1,distanceMatrix.length * antRate);
         this.alpha = alpha;

@@ -52,7 +52,7 @@ public class MyPanel extends JPanel{
         JButton buttonHK = new JButton("HK");
         buttonHK.addActionListener(e -> {
             TSPSolver tsp = new TSPSolver(getLengths());
-            solution = tsp.tspHeldKarp();
+            solution = tsp.heldKarp();
             System.out.println(solution.toString());
             labelLen.setText(String.valueOf(tsp.calcLength(solution)));
             repaint();
@@ -70,7 +70,7 @@ public class MyPanel extends JPanel{
         JButton buttonRI = new JButton("rand Ins");
         buttonRI.addActionListener(e -> {
             TSPSolver tsp = new TSPSolver(getLengths());
-            solution = tsp.randomInsert();
+            solution = tsp.randomInsertion();
             System.out.println(solution.toString());
             labelLen.setText(String.valueOf(tsp.calcLength(solution)));
             repaint();
@@ -88,7 +88,7 @@ public class MyPanel extends JPanel{
         JButton buttonFI = new JButton("far Ins");
         buttonFI.addActionListener(e -> {
             TSPSolver tsp = new TSPSolver(getLengths());
-            solution = tsp.farthestInsertTSP();
+            solution = tsp.farthestInsertion();
             System.out.println(solution.toString());
             labelLen.setText(String.valueOf(tsp.calcLength(solution)));
             repaint();
@@ -121,6 +121,15 @@ public class MyPanel extends JPanel{
 
         JButton buttonGA = new JButton("GA");
         buttonGA.addActionListener(e -> {
+            TSPSolver tsp = new TSPSolver(getLengths());
+            solution = tsp.ga(1000,1000,4,0.05f,0.05f,"disp",false);
+            System.out.println(solution.toString());
+            labelLen.setText(String.valueOf(tsp.calcLength(solution)));
+            repaint();
+        });
+
+        JButton buttonHGA = new JButton("HGA");
+        buttonHGA.addActionListener(e -> {
             TSPSolver tsp = new TSPSolver(getLengths());
             solution = tsp.ga(20,200,4,0.05f,0,"swap",true);
             System.out.println(solution.toString());
@@ -191,7 +200,7 @@ public class MyPanel extends JPanel{
         controlPanel.add(buttonREAD);
 
         heuristicsPanel.setLayout(new GridLayout(0, 1));
-        heuristicsPanel.setBorder(BorderFactory.createTitledBorder("Heuristics"));
+        heuristicsPanel.setBorder(BorderFactory.createTitledBorder("Algorithms"));
         heuristicsPanel.add(buttonRAND);
         heuristicsPanel.add(buttonBF);
         heuristicsPanel.add(buttonHK);
@@ -202,6 +211,7 @@ public class MyPanel extends JPanel{
         heuristicsPanel.add(buttonCHR);
         heuristicsPanel.add(buttonACO);
         heuristicsPanel.add(buttonGA);
+        heuristicsPanel.add(buttonHGA);
         heuristicsPanel.add(buttonLK);
 
         optimizationPanel.setLayout(new GridLayout(0, 1));
@@ -221,7 +231,6 @@ public class MyPanel extends JPanel{
         solverPanel.setLayout(new BoxLayout(solverPanel, BoxLayout.Y_AXIS));
         solverPanel.add(heuristicsPanel);
         solverPanel.add(optimizationPanel);
-        solverPanel.add(optimalPanel);
 
         add(controlPanel, BorderLayout.NORTH);
         add(solverPanel, BorderLayout.EAST);
