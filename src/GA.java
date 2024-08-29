@@ -88,32 +88,6 @@ public class GA {
         return tour;
     }
 
-
-    private int[] getNearestNeighborTour() {
-        int[] tour = new int[size];
-        boolean[] visited = new boolean[size];
-        tour[0] = 0;
-        visited[0] = true;
-        for (int i = 1; i < size - 1; i++) {
-            int lastCity = tour[i - 1];
-            int nearestCity = -1;
-            double minDistance = Double.MAX_VALUE;
-            for (int j = 1; j < size - 1; j++) {
-                if (!visited[j]) {
-                    double distance = lengths[lastCity][j];
-                    if (distance < minDistance) {
-                        minDistance = distance;
-                        nearestCity = j;
-                    }
-                }
-            }
-            tour[i] = nearestCity;
-            visited[nearestCity] = true;
-        }
-        tour[size - 1] = 0;
-        return tour;
-    }
-
     private void calcFitness(){
         for (int i = 0; i < populationsSize; i++) {
             fitness[i] = calcTourFitness(tours[i]);
@@ -167,7 +141,7 @@ public class GA {
 
         int[] child1 = new int[size];
         int[] child2 = new int[size];
-        int coPoint1 = rand.nextInt( size/2-1)+1;
+        int coPoint1 = rand.nextInt(size/2-1)+1;
         int coPoint2 = rand.nextInt(size-1-size/2)+size/2;
 
         Arrays.fill(child1,-1);
